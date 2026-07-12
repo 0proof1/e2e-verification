@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from e2e_verification.cli import main
+
+raise SystemExit(main())
+

@@ -1,0 +1,23 @@
+# Paths eligible for a public release artifact.
+src/
+schemas/
+agents/
+skills/
+workflows/
+examples/
+docs/
+tests/
+Dockerfile
+compose.yaml
+.dockerignore
+LICENSE
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+SUPPORT.md
+GOVERNANCE.md
+PUBLICATION_POLICY.md
+PUBLICATION_MANIFEST.md
+pyproject.toml

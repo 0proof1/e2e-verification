@@ -1,0 +1,4 @@
+interface:
+  display_name: "Close Out Evidence"
+  short_description: "Review evidence and produce a concise verification closeout"
+  default_prompt: "Use -evidence to review a completed run and produce its closeout report."

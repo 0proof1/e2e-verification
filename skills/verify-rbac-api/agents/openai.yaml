@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify RBAC API"
+  short_description: "Verify role-based API access with recorded evidence"
+  default_prompt: "Use -rbac-api to verify the configured role and API access contracts."

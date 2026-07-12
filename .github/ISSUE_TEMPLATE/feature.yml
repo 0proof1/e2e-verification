@@ -1,0 +1,20 @@
+name: Feature proposal
+description: Propose a reusable verification capability
+title: "proposal: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Framework-neutral problem
+    validations:
+      required: true
+  - type: textarea
+    id: layer
+    attributes:
+      label: Affected agent, skill, workflow, harness, or profile contract
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety, cleanup, evidence, and compatibility impact

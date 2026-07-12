@@ -1,0 +1,36 @@
+services:
+  target:
+    build:
+      context: examples/synthetic-target
+    ports:
+      - "18080:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  verifier:
+    build:
+      context: .
+    depends_on:
+      target:
+        condition: service_healthy
+    environment:
+      E2E_ADMIN_ID: synthetic-admin
+      E2E_ADMIN_PASSWORD: synthetic-password
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - evidence:/evidence
+    command:
+      - all
+      - --config
+      - examples/docker.project.json
+      - --target-mode
+      - same-network
+      - --out-dir
+      - /evidence/run
+
+volumes:
+  evidence:

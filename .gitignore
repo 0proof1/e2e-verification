@@ -1,0 +1,11 @@
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+*.egg-info/
+evidence/runs/
+.coverage
+htmlcov/
+dist/
+build/
+profiles/*/evidence/

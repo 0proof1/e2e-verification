@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Exports"
+  short_description: "Verify downloads and exports without retaining private data"
+  default_prompt: "Use -exports to validate configured downloads and exported file structure."

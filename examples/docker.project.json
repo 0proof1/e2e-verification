@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "name": "synthetic-docker-target",
+  "defaults": {
+    "web_base": "http://target:8080",
+    "api_base": "http://target:8080/api",
+    "evidence_dir": "/evidence",
+    "request_timeout_seconds": 5,
+    "settle_ms": 50
+  },
+  "api_login": {
+    "method": "POST",
+    "path": "/auth/login",
+    "body": {"username": "${account.id}", "password": "${account.password}"},
+    "expected_status": [200],
+    "token_path": "data.accessToken"
+  },
+  "browser_login": {
+    "path": "/login",
+    "id_selector": "[name=username]",
+    "password_selector": "[name=password]",
+    "submit_selector": "button[type=submit]",
+    "settle_ms": 100
+  },
+  "roles": [
+    {
+      "name": "ADMIN",
+      "home_path": "/dashboard",
+      "account": {"id_env": "E2E_ADMIN_ID", "password_env": "E2E_ADMIN_PASSWORD"},
+      "menus": [{"label": "Users"}],
+      "routes": [{"path": "/dashboard", "outcome": "ALLOW"}]
+    }
+  ],
+  "api_probes": [
+    {"id": "API-USERS", "role": "ADMIN", "method": "GET", "path": "/users", "expected_status": [200]}
+  ],
+  "browser_probes": [
+    {
+      "id": "UI-REFRESH",
+      "role": "ADMIN",
+      "route": "/dashboard",
+      "selector": "button[data-testid=refresh]",
+      "action": "click",
+      "risk": "read-only",
+      "after_ms": 100,
+      "expect": {"visible_selector": "#done:not([hidden])"}
+    }
+  ]
+}

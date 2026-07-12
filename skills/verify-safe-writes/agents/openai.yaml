@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Safe Writes"
+  short_description: "Run approved write fixtures and prove cleanup completion"
+  default_prompt: "Use -safe-writes to run approved fixtures and verify their cleanup."

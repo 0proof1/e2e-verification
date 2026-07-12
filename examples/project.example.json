@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "name": "my-project",
+  "defaults": {
+    "web_base": "http://localhost:3000",
+    "api_base": "http://localhost:8080/api",
+    "evidence_dir": "/tmp/e2e-verification",
+    "request_timeout_seconds": 30,
+    "settle_ms": 500
+  },
+  "api_login": {
+    "method": "POST",
+    "path": "/auth/login",
+    "body": {
+      "username": "${account.id}",
+      "password": "${account.password}",
+      "mode": "${account.mode}"
+    },
+    "expected_status": [200],
+    "token_path": "data.accessToken"
+  },
+  "browser_login": {
+    "path": "/login",
+    "id_selector": "[name=username]",
+    "password_selector": "[name=password]",
+    "submit_selector": "button[type=submit]",
+    "settle_ms": 800
+  },
+  "roles": [
+    {
+      "name": "ADMIN",
+      "home_path": "/dashboard",
+      "account": {
+        "id_env": "E2E_ADMIN_ID",
+        "password_env": "E2E_ADMIN_PASSWORD",
+        "mode": "ADMIN"
+      },
+      "menus": [{"label": "Users"}],
+      "routes": [
+        {"path": "/dashboard", "outcome": "ALLOW"},
+        {"path": "/admin/users", "outcome": "ALLOW"}
+      ]
+    }
+  ],
+  "api_probes": [
+    {"id": "API-ADMIN-001", "role": "ADMIN", "method": "GET", "path": "/users", "expected_status": [200]}
+  ],
+  "browser_probes": [
+    {
+      "id": "UI-ADMIN-001",
+      "role": "ADMIN",
+      "route": "/admin/users",
+      "selector": "button[data-testid=refresh]",
+      "action": "click",
+      "risk": "read-only",
+      "expect": {"response_url_regex": "/api/users"}
+    }
+  ]
+}

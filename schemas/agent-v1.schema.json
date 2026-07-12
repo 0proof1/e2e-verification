@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:e2e-verification:schema:agent:v1",
+  "title": "Portable verification agent role",
+  "type": "object",
+  "required": ["version", "name", "description", "skills", "responsibilities", "stop_conditions", "handoff"],
+  "properties": {
+    "version": {"const": 1},
+    "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "description": {"type": "string", "minLength": 1},
+    "skills": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "default_workflows": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "responsibilities": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "stop_conditions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "handoff": {
+      "type": "object",
+      "required": ["inputs", "outputs"],
+      "properties": {
+        "inputs": {"type": "array", "items": {"type": "string"}},
+        "outputs": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

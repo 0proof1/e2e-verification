@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Browser Routes"
+  short_description: "Verify role-based browser routes and menus safely"
+  default_prompt: "Use -browser-routes to verify the configured browser routes and menus."

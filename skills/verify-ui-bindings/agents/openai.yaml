@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify UI Bindings"
+  short_description: "Verify UI controls and their observable network bindings"
+  default_prompt: "Use -ui-bindings to inspect UI controls and verify their observable bindings."

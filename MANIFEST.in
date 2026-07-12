@@ -1,0 +1,14 @@
+include LICENSE README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md SUPPORT.md GOVERNANCE.md PUBLICATION_POLICY.md PUBLICATION_MANIFEST.md PUBLICATION_BLOCKERS.md
+include PUBLICATION_ALLOWLIST.txt ROADMAP.md
+include Dockerfile compose.yaml .dockerignore
+recursive-include src *.py
+recursive-include schemas *.json
+recursive-include agents *.yaml
+recursive-include skills *.md *.yaml
+recursive-include workflows *.json
+recursive-include examples *.json *.md *.py Dockerfile
+recursive-include docs *.md
+recursive-include tools *.py
+recursive-include .github *.md *.yml
+prune evidence
+global-exclude __pycache__ *.py[cod] *.xlsx *.xls *.png *.jpg *.jpeg *.har *.trace *.sqlite *.db

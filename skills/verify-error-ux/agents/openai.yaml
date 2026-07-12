@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Error UX"
+  short_description: "Measure negative-path behavior and recovery evidence"
+  default_prompt: "Use -error-ux to assess error handling and recovery behavior."

@@ -1,0 +1,25 @@
+name: Bug report
+description: Report a reproducible verification-platform defect
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: Use only synthetic evidence. Remove credentials and private target data.
+  - type: input
+    id: versions
+    attributes:
+      label: Package, Python, and browser versions
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal synthetic reproduction
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected status and observed status
+    validations:
+      required: true

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "read-only-verification",
+  "profile": "examples/project.example.json",
+  "steps": [
+    {
+      "id": "validate-profile",
+      "harness": "config-validate",
+      "args": {"config": "examples/project.example.json"}
+    },
+    {
+      "id": "api-contracts",
+      "harness": "api-probes",
+      "needs": ["validate-profile"],
+      "args": {"config": "examples/project.example.json"}
+    }
+  ]
+}

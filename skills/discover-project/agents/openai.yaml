@@ -1,0 +1,4 @@
+interface:
+  display_name: "Discover Project"
+  short_description: "Inspect a project and prepare its verification profile"
+  default_prompt: "Use -project to inspect this project and prepare a safe verification profile."

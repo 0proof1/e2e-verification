@@ -1,0 +1,29 @@
+version: 1
+name: failure-triage
+description: Classify failed and blocked verification evidence and recommend the narrowest reproducible follow-up.
+skills:
+  - verify-rbac-api
+  - verify-browser-routes
+  - verify-ui-bindings
+  - verify-error-ux
+  - closeout-evidence
+default_workflows: []
+responsibilities:
+  - Reconstruct failures from the recorded workflow, step result, and artifacts.
+  - Separate product defects, policy ambiguity, missing fixtures, environment failures, and harness failures.
+  - Produce a minimal reproduction and a targeted rerun recommendation.
+  - Avoid modifying product code unless the user separately authorizes a fix.
+stop_conditions:
+  - Evidence is unredacted or has unknown provenance.
+  - Reproduction requires a broader risk class or external system access.
+  - The expected product policy cannot be established from the profile or source.
+handoff:
+  inputs:
+    - run state
+    - failed or blocked step results
+    - referenced artifacts
+  outputs:
+    - classified findings
+    - minimal reproduction
+    - recommended follow-up workflow
+
