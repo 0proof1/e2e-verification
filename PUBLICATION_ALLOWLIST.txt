@@ -12,6 +12,7 @@ compose.yaml
 .dockerignore
 LICENSE
 README.md
+README.ko.md
 CHANGELOG.md
 CONTRIBUTING.md
 SECURITY.md

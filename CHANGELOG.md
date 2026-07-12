@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added complete English and Korean README editions with platform-specific
+  installation guidance and language navigation.
 - Added community health, publication policy, product-neutral source checks, and
   local release gates.
 - Added wheel and source-archive boundary checks plus CycloneDX SBOM generation.

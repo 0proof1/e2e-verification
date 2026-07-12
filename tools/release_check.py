@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
     "README.md",
+    "README.ko.md",
     "LICENSE",
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
@@ -32,6 +33,7 @@ REQUIRED = {
 PUBLIC_ROOTS = ("src", "schemas", "agents", "skills", "workflows", "examples", "docs", "tests")
 PUBLIC_FILES = (
     "README.md",
+    "README.ko.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "SUPPORT.md",

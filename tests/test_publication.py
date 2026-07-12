@@ -12,6 +12,7 @@ class PublicationTest(unittest.TestCase):
     def test_community_health_files_exist(self) -> None:
         required = [
             "README.md",
+            "README.ko.md",
             "LICENSE",
             "CONTRIBUTING.md",
             "CODE_OF_CONDUCT.md",

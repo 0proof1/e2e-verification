@@ -1,6 +1,12 @@
 # e2e-verification
 
-**Agent-guided verification. Deterministic execution. Evidence you can audit.**
+<p align="center"><strong>Agent-guided verification. Deterministic execution. Evidence you can audit.</strong></p>
+
+<p align="center">
+  <strong>English</strong> · <a href="README.ko.md">한국어</a>
+</p>
+
+<p align="center"><code>Python 3.11+</code> · <code>API</code> · <code>Playwright</code> · <code>Docker</code> · <code>Apache-2.0</code></p>
 
 `e2e-verification` is an open verification platform for applications with complex roles, routes, APIs, UI actions, downloads, and test-data lifecycles. Agents decide what to investigate; reusable skills define safe procedures; resumable workflows control sequence and approval; deterministic harnesses interact with the product and record evidence.
 
@@ -47,6 +53,25 @@ python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/playwright install chromium
 ```
+
+On Windows PowerShell, use `.venv\Scripts\Activate.ps1` and commands from
+`.venv\Scripts`. Linux CI or container images can install browser system
+packages with `python -m playwright install --with-deps chromium`.
+
+### Choose the installation that matches your environment
+
+| Environment | Recommended path | What is additionally required |
+|---|---|---|
+| Linux, macOS, Windows host | Python virtual environment | Chromium for browser probes |
+| Docker or Compose | Included `Dockerfile` and `compose.yaml` | Docker Engine with Compose |
+| API-only verification | Python package | No browser installation |
+| Air-gapped host | Preloaded wheel and browser bundle | Matching Playwright browser binaries |
+
+The package and unit-test matrix targets Python 3.11-3.13 on Linux and Python
+3.12 on macOS and Windows. Full API, Chromium, and Docker integration is
+currently exercised on Linux. ARM64, Alpine/musl, WSL, private-CA, and proxy
+environments should run `e2e-verify doctor` and a synthetic smoke test before
+being treated as validated deployment targets.
 
 Validate the synthetic example profile and inspect its read-only workflow without contacting a target:
 
@@ -201,7 +226,7 @@ tests/                     contract and execution tests
 
 The repository contains only product-neutral platform code and synthetic examples. Python wheel and source-release boundaries are defined by `pyproject.toml`, `MANIFEST.in`, and `PUBLICATION_ALLOWLIST.txt`. The stricter `tools/public_repo_gate.py` scans the complete tracked source candidate before repository publication.
 
-## Legacy commands
+## Direct commands
 
 Config-driven commands are available for direct verification:
 
