@@ -211,6 +211,9 @@ data, empty, and error states; measure first-view title visibility, overflow,
 clipping, and menu scroll reset; and run the bundled, pinned axe-core plus Tab
 and focus-indicator checks for data cases. Product selectors and synthetic API
 fixtures stay in the consuming project rather than this platform repository.
+The `data` contract may either use `{"action": "passthrough"}` for seeded test
+environments or a read-only `fixture_pattern` when the audit must prove a
+deterministic non-empty state.
 
 ## Safety is part of the contract
 

@@ -53,6 +53,31 @@ class UiAuditConfigTest(unittest.TestCase):
         invalid = {"state": "error", "intercepts": [{"method": "POST", "url": "**/api/items", "action": "abort"}]}
         self.assertIn("mutating method", "\n".join(validate_state_fixture(invalid)))
 
+    def test_data_state_can_use_a_read_only_fixture(self) -> None:
+        config = self.valid_config()
+        config["cases"][0]["states"] = ["data"]
+        config["state_contract"]["data"] = {"fixture_pattern": "fixtures/{page}/data.json"}
+        config["state_contract"].pop("empty")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text("[project]\nname='test'\nversion='0'\n", encoding="utf-8")
+            fixture_dir = root / "fixtures" / "command"
+            fixture_dir.mkdir(parents=True)
+            fixture = {"state": "data", "intercepts": [{
+                "method": "GET", "url": "**/api/items", "action": "fulfill", "body": {"data": [{"id": "one"}]},
+            }]}
+            (fixture_dir / "data.json").write_text(json.dumps(fixture), encoding="utf-8")
+            path = root / "audit.json"
+            path.write_text(json.dumps(config), encoding="utf-8")
+            old_cwd = Path.cwd()
+            try:
+                import os
+                os.chdir(root)
+                loaded = load_ui_audit_config(path)
+                self.assertEqual("data", load_state_fixture(loaded, "command", "data")["state"])
+            finally:
+                os.chdir(old_cwd)
+
     def test_requires_paired_screenshots_and_known_states(self) -> None:
         config = self.valid_config()
         config["artifacts"] = ["viewport"]

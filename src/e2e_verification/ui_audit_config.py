@@ -121,8 +121,8 @@ def load_state_fixture(config: dict[str, Any], page: str, state: str) -> dict[st
 def validate_state_fixture(payload: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     state = payload.get("state")
-    if state not in SUPPORTED_STATES - {"data"}:
-        errors.append("fixture state must be loading, empty, or error")
+    if state not in SUPPORTED_STATES:
+        errors.append("fixture state must be loading, data, empty, or error")
     intercepts = payload.get("intercepts", [])
     if not isinstance(intercepts, list) or not intercepts:
         errors.append("fixture intercepts must be a non-empty array")
@@ -147,8 +147,10 @@ def _validate_fixture_references(config: dict[str, Any], base_dir: Path) -> list
     errors: list[str] = []
     pages = {str(case.get("page")) for case in config.get("cases", []) if isinstance(case, dict)}
     states = {str(state) for case in config.get("cases", []) if isinstance(case, dict) for state in case.get("states", [])}
-    for state in states - {"data"}:
+    for state in states:
         contract = config.get("state_contract", {}).get(state, {})
+        if contract.get("action") == "passthrough":
+            continue
         pattern = contract.get("fixture_pattern")
         if not pattern:
             errors.append(f"state_contract.{state}.fixture_pattern is required")
