@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "name": "tiered-ux-verification",
+  "slots": [
+    {
+      "id": "adjudicator",
+      "purpose": "Set criteria and adjudicate only high-impact or conflicting UX evidence.",
+      "reasoning": "maximum",
+      "capabilities": ["open-ended-judgment", "cross-page-synthesis", "risk-adjudication"],
+      "max_share_percent": 5
+    },
+    {
+      "id": "implementer",
+      "purpose": "Build deterministic collectors and perform first-pass UX interpretation.",
+      "reasoning": "high",
+      "capabilities": ["playwright-implementation", "fixture-design", "visual-review"],
+      "max_share_percent": 25
+    },
+    {
+      "id": "collector",
+      "purpose": "Run bounded workflows and organize repeatable evidence without policy judgment.",
+      "reasoning": "standard",
+      "capabilities": ["workflow-execution", "artifact-indexing", "structured-reporting"],
+      "max_share_percent": 80
+    }
+  ],
+  "providers": {
+    "codex": {
+      "adjudicator": {"model_env": "E2E_CODEX_ADJUDICATOR_MODEL"},
+      "implementer": {"model_env": "E2E_CODEX_IMPLEMENTER_MODEL"},
+      "collector": {"model_env": "E2E_CODEX_COLLECTOR_MODEL"}
+    },
+    "claude": {
+      "adjudicator": {"model_env": "E2E_CLAUDE_ADJUDICATOR_MODEL"},
+      "implementer": {"model_env": "E2E_CLAUDE_IMPLEMENTER_MODEL"},
+      "collector": {"model_env": "E2E_CLAUDE_COLLECTOR_MODEL"}
+    },
+    "custom": {
+      "adjudicator": {"model_env": "E2E_CUSTOM_ADJUDICATOR_MODEL"},
+      "implementer": {"model_env": "E2E_CUSTOM_IMPLEMENTER_MODEL"},
+      "collector": {"model_env": "E2E_CUSTOM_COLLECTOR_MODEL"}
+    }
+  },
+  "stages": [
+    {
+      "id": "criteria",
+      "execution": "agent",
+      "model_slot": "adjudicator",
+      "agent": "verification-lead",
+      "tasks": ["Freeze first-user UX criteria, P0-P3 severity, and mandatory evidence-link policy."]
+    },
+    {
+      "id": "instrumentation",
+      "execution": "hybrid",
+      "model_slot": "implementer",
+      "agent": "ux-reviewer",
+      "harnesses": ["browser-probes"],
+      "tasks": ["Implement viewport/full-page capture pairs, mechanical UX checks, role contexts, and state fixtures."]
+    },
+    {
+      "id": "pilot-collection",
+      "execution": "hybrid",
+      "model_slot": "collector",
+      "agent": "evidence-collector",
+      "harnesses": ["browser-probes"],
+      "tasks": ["Collect the first bounded route set at 1366x768 and persist JSON, screenshots, and failure traces."]
+    },
+    {
+      "id": "full-collection",
+      "execution": "hybrid",
+      "model_slot": "collector",
+      "agent": "evidence-collector",
+      "harnesses": ["browser-probes"],
+      "tasks": ["Expand only after the pilot is stable across applicable role, state, viewport, and capture combinations."]
+    },
+    {
+      "id": "first-ux-review",
+      "execution": "agent",
+      "model_slot": "implementer",
+      "agent": "ux-reviewer",
+      "tasks": ["Review usability independently of functional status and attach evidence to every P0-P3 finding."]
+    },
+    {
+      "id": "final-adjudication",
+      "execution": "agent",
+      "model_slot": "adjudicator",
+      "agent": "verification-lead",
+      "tasks": ["Review high-cost, ambiguous, conflicting, or cross-page findings only."]
+    }
+  ],
+  "escalation_rules": [
+    {
+      "from_slot": "collector",
+      "to_slot": "implementer",
+      "when": "A deterministic run still fails after one retry with a saved trace.",
+      "retry_before_escalation": 1
+    },
+    {
+      "from_slot": "implementer",
+      "to_slot": "adjudicator",
+      "when": "Evidence remains ambiguous, reviewers conflict, or a permission, settlement, or primary-CTA error could cause material harm.",
+      "retry_before_escalation": 0
+    }
+  ]
+}

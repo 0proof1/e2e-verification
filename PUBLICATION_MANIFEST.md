@@ -13,6 +13,7 @@ This file separates publishable source from generated verification evidence.
 - `evidence/runs/`
 - `profiles/*/evidence/*.xlsx`
 - Screenshots, traces, browser storage, raw downloads, and generated reports
+- Evidence-derived agent task packets such as `*.task.json`
 - Local virtual environments, build output, and dependency directories
 
 ## Profile release checks
@@ -22,6 +23,7 @@ This file separates publishable source from generated verification evidence.
 3. Recreate examples with synthetic identities and fixtures.
 4. Verify every mutating probe has named approval and independently verified cleanup.
 5. Run the test suite and skill validators.
-6. Create release artifacts from a clean checkout so ignored local evidence cannot enter the archive.
+6. Confirm the changelog and migration guidance match every versioned contract change.
+7. Create release artifacts from a clean checkout so ignored local evidence cannot enter the archive.
 
 Generated evidence is never a source asset. Reproduce it from a synthetic or explicitly authorized target and review it separately before any publication.

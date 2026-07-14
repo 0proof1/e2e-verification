@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "name": "pilot-visual-verification",
+  "profile": "examples/docker.project.json",
+  "steps": [
+    {
+      "id": "validate-profile",
+      "harness": "config-validate",
+      "args": {"config": "examples/docker.project.json"}
+    },
+    {
+      "id": "collect-pilot",
+      "harness": "browser-probes",
+      "needs": ["validate-profile"],
+      "args": {
+        "config": "examples/docker.project.json",
+        "target_mode": "same-network",
+        "trace_on_failure": true
+      },
+      "retries": 1,
+      "timeout_seconds": 30
+    }
+  ]
+}

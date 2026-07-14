@@ -3,6 +3,7 @@
 - [[Home]]
 - [[Getting Started]]
 - [[Architecture]]
+- [[Model Orchestration]]
 - [[Profiles and Workflows]]
 - [[Safety Model]]
 - [[Evidence and Reporting]]

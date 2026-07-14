@@ -18,6 +18,9 @@ def runtime(in_container: bool) -> RuntimeEnvironment:
 
 
 class EnvironmentTest(unittest.TestCase):
+    def test_unstamped_host_runtime_reports_unknown_source_revision(self) -> None:
+        self.assertEqual("unknown", runtime(False).source_revision)
+
     def test_cli_endpoint_wins(self) -> None:
         config = {"defaults": {"api_base": "http://config:8080"}}
         with patch.dict(os.environ, {"E2E_API_BASE": "http://env:8080"}):

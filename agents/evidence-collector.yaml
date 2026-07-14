@@ -1,0 +1,28 @@
+version: 1
+name: evidence-collector
+description: Run bounded deterministic workflows and organize artifacts without making product-policy decisions.
+skills:
+  - verify-browser-routes
+  - verify-ui-bindings
+  - verify-error-ux
+  - closeout-evidence
+default_workflows:
+  - workflows/pilot-visual.json
+responsibilities:
+  - Execute only the declared role, route, state, viewport, and capture matrix.
+  - Preserve viewport and full-page screenshot pairs, measurements, reports, and failure traces.
+  - Retry a failed deterministic collection once before handing it to implementation review.
+  - Keep role contexts and output folders separate.
+stop_conditions:
+  - The pilot is unstable or a second deterministic attempt fails.
+  - A route-role combination is not authorized by the profile.
+  - Evidence requires a broader risk class or contains unreviewed sensitive data.
+handoff:
+  inputs:
+    - validated project profile
+    - bounded workflow plan
+    - resolved model work plan
+  outputs:
+    - structured measurements
+    - paired screenshot evidence
+    - retry and trace metadata

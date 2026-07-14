@@ -36,6 +36,7 @@ class RuntimeEnvironment:
     docker_socket: bool
     playwright: bool
     chromium: bool
+    source_revision: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,7 @@ def detect_runtime() -> RuntimeEnvironment:
         docker_socket=Path("/var/run/docker.sock").exists(),
         playwright=playwright,
         chromium=chromium,
+        source_revision=os.environ.get("E2E_SOURCE_SHA", "unknown"),
     )
 
 

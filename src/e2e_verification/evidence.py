@@ -10,7 +10,7 @@ from typing import Any
 from .redaction import redact
 
 
-CONTRACT_VERSION = "1.0"
+CONTRACT_VERSION = "1.1"
 
 
 class Status(StrEnum):
@@ -19,6 +19,18 @@ class Status(StrEnum):
     REVIEW = "REVIEW"
     BLOCKED = "BLOCKED"
     SKIP = "SKIP"
+
+
+class FunctionalStatus(StrEnum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    BLOCKED = "BLOCKED"
+
+
+class UsabilityStatus(StrEnum):
+    PASS = "PASS"
+    REVIEW = "REVIEW"
+    NOT_RUN = "NOT_RUN"
 
 
 class Risk(StrEnum):
@@ -43,7 +55,7 @@ class Finding:
     status: Status
     title: str
     message: str = ""
-    severity: str = "info"
+    severity: str = "P3"
     evidence: list[str] = field(default_factory=list)
 
 
@@ -69,12 +81,19 @@ class StepResult:
     recommended_next_steps: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     contract_version: str = CONTRACT_VERSION
+    functionalStatus: FunctionalStatus = FunctionalStatus.PASS
+    usabilityStatus: UsabilityStatus = UsabilityStatus.NOT_RUN
 
     def validate(self) -> None:
         if not self.step_id.strip():
             raise ValueError("step_id is required")
         if not self.harness.strip():
             raise ValueError("harness is required")
+        for finding in self.findings:
+            if finding.severity not in {"P0", "P1", "P2", "P3"}:
+                raise ValueError(f"finding {finding.id}: severity must be P0, P1, P2, or P3")
+            if not finding.evidence:
+                raise ValueError(f"finding {finding.id}: at least one evidence link is required")
         if self.risk in {Risk.WRITE, Risk.DESTRUCTIVE, Risk.EXTERNAL_SEND}:
             if not self.cleanup.required:
                 raise ValueError(f"{self.risk} steps must require cleanup")

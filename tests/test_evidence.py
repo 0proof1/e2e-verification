@@ -5,11 +5,19 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from e2e_verification.evidence import Cleanup, Risk, RunResult, Status, StepResult, exit_code
+from e2e_verification.evidence import Cleanup, Finding, Risk, RunResult, Status, StepResult, exit_code
 from e2e_verification.redaction import REDACTED, redact
 
 
 class EvidenceTest(unittest.TestCase):
+    def test_findings_require_p0_to_p3_severity_and_evidence(self) -> None:
+        result = StepResult(
+            step_id="ux", harness="review", status=Status.REVIEW,
+            started_at="2026-07-12T00:00:00+00:00", finished_at="2026-07-12T00:00:01+00:00",
+            findings=[Finding(id="UX-1", status=Status.REVIEW, title="Ambiguous CTA", severity="P1")],
+        )
+        with self.assertRaisesRegex(ValueError, "evidence link"):
+            result.to_dict()
     def test_read_only_result_serializes(self) -> None:
         result = StepResult(
             step_id="api-read",

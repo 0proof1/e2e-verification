@@ -34,6 +34,11 @@ class SchemaTest(unittest.TestCase):
         for path in (ROOT / "agents").glob("*.yaml"):
             validator.validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
+    def test_example_model_plan_matches_published_schema(self) -> None:
+        validator = Draft202012Validator(schema("model-plan-v1.schema.json"))
+        payload = json.loads((ROOT / "examples" / "model-plan.example.json").read_text(encoding="utf-8"))
+        validator.validate(payload)
+
     def test_step_and_run_output_match_published_schemas(self) -> None:
         evidence_schema = schema("evidence-v1.schema.json")
         run_schema = schema("run-v1.schema.json")

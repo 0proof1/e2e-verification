@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:e2e-verification:schema:model-plan:v1",
+  "title": "Provider-neutral model work plan",
+  "type": "object",
+  "required": ["version", "name", "slots", "providers", "stages", "escalation_rules"],
+  "properties": {
+    "version": {"const": 1},
+    "name": {"type": "string", "minLength": 1},
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "purpose", "reasoning", "capabilities", "max_share_percent"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "purpose": {"type": "string", "minLength": 1},
+          "reasoning": {"enum": ["standard", "high", "maximum"]},
+          "capabilities": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+          "max_share_percent": {"type": "integer", "minimum": 1, "maximum": 100}
+        },
+        "additionalProperties": false
+      }
+    },
+    "providers": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "model": {"type": "string", "minLength": 1},
+            "model_env": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}
+          },
+          "oneOf": [
+            {"required": ["model"], "not": {"required": ["model_env"]}},
+            {"required": ["model_env"], "not": {"required": ["model"]}}
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "execution", "tasks"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "execution": {"enum": ["agent", "harness", "hybrid"]},
+          "model_slot": {"type": "string"},
+          "agent": {"type": "string"},
+          "harnesses": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "tasks": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "escalation_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from_slot", "to_slot", "when"],
+        "properties": {
+          "from_slot": {"type": "string"},
+          "to_slot": {"type": "string"},
+          "when": {"type": "string", "minLength": 1},
+          "retry_before_escalation": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

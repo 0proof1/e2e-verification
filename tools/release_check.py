@@ -29,6 +29,9 @@ REQUIRED = {
     ".dockerignore",
     "compose.yaml",
     "docs/environments.md",
+    "docs/migration-0.2.md",
+    "docs/model-orchestration.md",
+    "tools/install_checkout.py",
 }
 PUBLIC_ROOTS = ("src", "schemas", "agents", "skills", "workflows", "examples", "docs", "tests")
 PUBLIC_FILES = (

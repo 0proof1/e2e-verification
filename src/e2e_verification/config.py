@@ -10,6 +10,8 @@ from typing import Any
 SUPPORTED_ACTIONS = {"click", "fill", "select", "check", "press"}
 SUPPORTED_OUTCOMES = {"ALLOW", "REDIRECT", "FORBID_REDIRECT"}
 SUPPORTED_RISKS = {"read-only", "download", "write", "destructive", "external-send"}
+SUPPORTED_VISUAL_CHECKS = {"scroll-top", "title-in-first-viewport", "horizontal-overflow", "clipping"}
+SUPPORTED_CAPTURE_TYPES = {"viewport", "full-page"}
 
 
 def nested_get(value: Any, dotted_path: str) -> Any:
@@ -100,6 +102,35 @@ def validate_config(config: dict[str, Any]) -> list[str]:
             risk = probe.get("risk")
             if risk is not None and risk not in SUPPORTED_RISKS:
                 errors.append(f"{probe_id}: unsupported risk {risk}")
+    visual = config.get("visual_verification")
+    if visual is not None:
+        if not isinstance(visual, dict):
+            errors.append("visual_verification must be an object")
+        else:
+            viewport = visual.get("viewport", {})
+            if not isinstance(viewport, dict):
+                errors.append("visual_verification.viewport must be an object")
+            else:
+                for dimension in ("width", "height"):
+                    value = viewport.get(dimension)
+                    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+                        errors.append(f"visual_verification.viewport.{dimension} must be a positive integer")
+            captures = visual.get("capture", [])
+            if not isinstance(captures, list) or not captures:
+                errors.append("visual_verification.capture must be a non-empty array")
+            else:
+                unknown = {str(value) for value in captures} - SUPPORTED_CAPTURE_TYPES
+                if unknown:
+                    errors.append(f"visual_verification.capture contains unsupported values {sorted(unknown)}")
+            checks = visual.get("checks", [])
+            if not isinstance(checks, list) or not checks:
+                errors.append("visual_verification.checks must be a non-empty array")
+            else:
+                unknown = {str(value) for value in checks} - SUPPORTED_VISUAL_CHECKS
+                if unknown:
+                    errors.append(f"visual_verification.checks contains unsupported values {sorted(unknown)}")
+            if isinstance(checks, list) and "title-in-first-viewport" in checks and not str(visual.get("title_selector", "")).strip():
+                errors.append("visual_verification.title_selector is required for title-in-first-viewport")
     return errors
 
 

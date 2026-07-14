@@ -44,13 +44,39 @@ This project turns those questions into inspectable workflows and versioned evid
 | **Harness** | Perform deterministic API/browser work and emit evidence | Decide its own next task |
 | **Profile** | Describe product roles, login, routes, probes, and fixtures | Change platform-core behavior |
 
+### AI is the adaptive control plane
+
+Without a model, the safety gates, redaction, deterministic harnesses, resume,
+and reports remain useful. The differentiating loop is AI-guided: an agent uses
+recorded evidence to choose a bounded follow-up workflow, interpret usability,
+triage failures, or escalate an ambiguous decision. Models never replace the
+harness for screenshots, DOM measurements, retries, or assertions.
+
+Model work plans use capability slots instead of hard-coded vendor generations.
+Bind any Codex, Claude, or custom models at runtime:
+
+```bash
+e2e-verify model-plan \
+  --model-plan examples/model-plan.example.json \
+  --provider codex
+
+e2e-verify plan \
+  --workflow workflows/pilot-visual.json \
+  --model-plan examples/model-plan.example.json \
+  --provider codex
+```
+
+After a run, `agent-task` produces a redacted, evidence-backed task packet for
+an external model orchestrator. Generating a packet does not invoke a model or
+authorize a mutation. See [Model orchestration](docs/model-orchestration.md).
+
 ## Quick start
 
 Requires Python 3.11 or newer.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e .
+.venv/bin/pip install -e '.[browser]'
 .venv/bin/playwright install chromium
 ```
 
@@ -184,6 +210,8 @@ Portable role definitions under `agents/` compose those skills:
 - `verification-lead` plans and coordinates the smallest safe workflow.
 - `failure-triage` classifies failures and proposes a minimal reproduction.
 - `evidence-reviewer` audits completeness, redaction, cleanup, and publication readiness.
+- `evidence-collector` runs bounded pilot/full collection and preserves paired evidence.
+- `ux-reviewer` builds collectors and reviews usability independently from functionality.
 
 These definitions are intentionally thin. Product behavior stays in profiles; reliable execution stays in harness code.
 
@@ -194,6 +222,15 @@ e2e-verify assets
 ```
 
 ## Status semantics
+
+Evidence contract 1.1 keeps the two questions independent:
+
+| Field | Values | Question |
+|---|---|---|
+| `functionalStatus` | `PASS`, `FAIL`, `BLOCKED` | Did the observable product contract work? |
+| `usabilityStatus` | `PASS`, `REVIEW`, `NOT_RUN` | Is the UX acceptable or does it need judgment? |
+
+The aggregate workflow status remains:
 
 | Status | Meaning |
 |---|---|
@@ -214,6 +251,8 @@ workflows/                 declarative execution graphs
 schemas/                   workflow, agent, run, and step contracts
 src/e2e_verification/
   config.py                profile validation and substitution
+  model_plan.py            provider-neutral model routing and escalation
+  agent_task.py            redacted evidence handoffs for external model runtimes
   api_harness.py           deterministic API probes
   browser_harness.py       deterministic browser probes
   workflow.py              planning, gates, retries, and resume
@@ -241,11 +280,17 @@ These commands use the same product-neutral configuration and evidence contracts
 ## Development
 
 ```bash
-.venv/bin/pip install -e '.[dev]'
+.venv/bin/python tools/install_checkout.py --extras dev
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 python3 -m compileall -q src tests
 python3 tools/release_check.py
 ```
+
+The checkout installer verifies `GITHUB_SHA` when present and force-reinstalls
+the project itself with `--no-deps`, so pip's same-version satisfaction check
+cannot leave an older CLI active. It then imports the package
+from this checkout and invokes the installed console entry point, requiring the
+current `model-plan` and `agent-task` commands to appear.
 
 Release artifacts must also pass:
 
@@ -257,6 +302,8 @@ python3 tools/generate_sbom.py dist/sbom.cdx.json
 Architecture and policy details:
 
 - [Architecture](docs/architecture.md)
+- [Model orchestration](docs/model-orchestration.md)
+- [0.2 migration guidance](docs/migration-0.2.md)
 - [Open-source boundary](docs/open-source-boundary.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)

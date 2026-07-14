@@ -1,5 +1,31 @@
 # Security Audit Record
 
+This is a maintainer-run verification record, not an independent security
+audit. Passing it reduces known risk but does not prove that redaction,
+approval, cleanup, or evidence code is defect-free.
+
+## 2026-07-14 v0.2 Synthetic Pilot
+
+- 88 unit and contract tests were discovered; 86 passed and 2
+  environment-gated browser/network tests were skipped in the host Python
+  environment
+- The Docker Chromium pilot completed with functional `PASS` and usability
+  `PASS` at 1366x768
+- Docker-local API and Chromium integration tests passed, including failure
+  trace persistence for a deliberately missing selector
+- The verifier image reported its supplied source revision and exact direct
+  Playwright/PyYAML versions; a source-revision-only rebuild reused the pinned
+  browser dependency layer and force-reinstalled the package layer
+- The 0.2.0 wheel passed the publication-boundary check and a fresh-environment
+  CLI smoke test for `doctor`, `assets`, and `model-plan`
+- A same-version 0.2.0 checkout reinstall replaced the existing distribution,
+  resolved imports to the expected checkout SHA, and passed the installed CLI
+  command-contract check
+- Viewport/full-page pairs, structured DOM measurements, and an HTML artifact
+  index were generated for the synthetic dashboard and action probe
+- This run used only the repository-owned synthetic target; it is not a public
+  production-project case study or an external audit
+
 ## 2026-07-12 Local Candidate
 
 - `pip-audit 2.10.1` against installed runtime, dev, and XLSX dependencies:

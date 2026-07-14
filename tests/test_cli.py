@@ -87,6 +87,30 @@ class CliTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(["validate-profile", "api-contracts"], [item["id"] for item in payload["steps"]])
 
+    def test_model_plan_materializes_provider_bindings(self) -> None:
+        with unittest.mock.patch.dict(os.environ, {
+            "E2E_CODEX_ADJUDICATOR_MODEL": "principal",
+            "E2E_CODEX_IMPLEMENTER_MODEL": "builder",
+            "E2E_CODEX_COLLECTOR_MODEL": "worker",
+        }, clear=False):
+            result = self.command(
+                "model-plan", "--model-plan", "examples/model-plan.example.json", "--provider", "codex",
+            )
+        self.assertEqual(0, result.returncode, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["ready"])
+        self.assertEqual("principal", payload["stages"][0]["binding"]["model"])
+
+    def test_workflow_plan_can_include_unresolved_model_routing(self) -> None:
+        result = self.command(
+            "plan", "--workflow", "workflows/pilot-visual.json",
+            "--model-plan", "examples/model-plan.example.json", "--provider", "custom",
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["modelPlan"]["ready"])
+        self.assertEqual("pilot-visual-verification", payload["workflow"])
+
     def test_run_and_html_report_work_without_live_api_when_dependency_blocks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             run = self.command(

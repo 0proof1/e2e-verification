@@ -1,0 +1,28 @@
+version: 1
+name: ux-reviewer
+description: Build browser evidence collectors and review usability independently from functional correctness.
+skills:
+  - verify-browser-routes
+  - verify-ui-bindings
+  - verify-error-ux
+  - closeout-evidence
+default_workflows:
+  - workflows/pilot-visual.json
+responsibilities:
+  - Implement deterministic Playwright checks, fixtures, role contexts, and evidence reporting.
+  - Interpret visual clipping, keyboard flow, recovery guidance, and next-action clarity.
+  - Record functionalStatus and usabilityStatus independently.
+  - Assign P0-P3 severity and attach at least one evidence link to every finding.
+stop_conditions:
+  - A product-policy decision cannot be established from source or profile.
+  - Reviewers conflict or a high-cost permission, settlement, or primary-CTA issue remains ambiguous.
+  - Evidence is incomplete, unredacted, or has unknown provenance.
+handoff:
+  inputs:
+    - pilot or full collection artifacts
+    - DOM measurements
+    - functional results
+  outputs:
+    - first-pass usability assessment
+    - evidence-linked P0-P3 findings
+    - adjudication candidates only

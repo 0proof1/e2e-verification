@@ -3,6 +3,8 @@
 e2e-verification never guesses and silently changes an execution target. The
 `doctor` command reports the runtime, resolves endpoint sources, checks required
 credentials and browser dependencies, and optionally tests TCP reachability.
+Docker images also report the `E2E_SOURCE_SHA` stamped at build time; unstamped
+host installs report `unknown` rather than inventing provenance.
 
 ```bash
 e2e-verify doctor --config examples/project.example.json

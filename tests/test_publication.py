@@ -3,12 +3,29 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import tomllib
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 class PublicationTest(unittest.TestCase):
+    def test_browser_dependency_is_optional_and_docker_dependencies_are_pinned(self) -> None:
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+        self.assertFalse(any("playwright" in item.lower() for item in project["dependencies"]))
+        self.assertTrue(any("playwright" in item.lower() for item in project["optional-dependencies"]["browser"]))
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn('playwright==${PLAYWRIGHT_VERSION}', dockerfile)
+        self.assertIn('PyYAML==${PYYAML_VERSION}', dockerfile)
+        self.assertIn("--force-reinstall --no-deps", dockerfile)
+        self.assertLess(dockerfile.index('playwright==${PLAYWRIGHT_VERSION}'), dockerfile.index("ARG SOURCE_SHA"))
+
+    def test_ci_forces_checkout_and_wheel_reinstallation(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("tools/install_checkout.py --extras dev --require-clean", workflow)
+        self.assertIn("pip install --force-reinstall dist/*.whl", workflow)
+        self.assertIn("sha256sum -c", workflow)
+
     def test_community_health_files_exist(self) -> None:
         required = [
             "README.md",

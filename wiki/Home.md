@@ -12,6 +12,7 @@ can be reviewed independently.
 
 - [[Getting Started]] — validate the synthetic profile and run a dry plan.
 - [[Architecture]] — understand agents, skills, workflows, harnesses, and profiles.
+- [[Model Orchestration]] — route model capabilities and create evidence-backed AI tasks.
 - [[Profiles and Workflows]] — adapt the platform to another application.
 - [[Safety Model]] — approvals, mutation rules, cleanup, and trust boundaries.
 - [[Evidence and Reporting]] — statuses, artifacts, redaction, and reports.

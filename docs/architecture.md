@@ -44,6 +44,12 @@ Profiles adapt the platform to a product. They contain selectors, roles, routes,
 7. Aggregate findings and artifacts into machine-readable JSON and a human-readable report.
 8. Let an agent select only the follow-up steps justified by the recorded findings.
 
+The adaptive loop is optional but intentional: a provider-neutral model plan
+selects an agent capability slot, and an agent task packet combines that stage
+with skills and redacted evidence. A model response can recommend a bounded
+follow-up workflow; it never bypasses workflow validation or approval gates.
+See [Model orchestration and the adaptive loop](model-orchestration.md).
+
 ## Design rules
 
 - Read-only is the default.
@@ -54,4 +60,3 @@ Profiles adapt the platform to a product. They contain selectors, roles, routes,
 - A mutating step without verified cleanup cannot pass.
 - Resume reuses completed step results rather than silently rerunning mutations.
 - Legacy commands remain wrappers until parity tests authorize their removal.
-

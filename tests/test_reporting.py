@@ -38,6 +38,22 @@ class ReportingTest(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertGreater(output.stat().st_size, 0)
 
+    def test_html_report_links_thumbnail_to_original_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            run_path = self.state(directory)
+            state = json.loads(run_path.read_text(encoding="utf-8"))
+            screenshot = Path(directory) / "shot.png"
+            screenshot.write_bytes(b"synthetic")
+            state["steps"]["api"]["functionalStatus"] = "PASS"
+            state["steps"]["api"]["usabilityStatus"] = "PASS"
+            state["steps"]["api"]["artifacts"] = [{
+                "kind": "screenshot", "path": str(screenshot), "description": "viewport", "redacted": False,
+            }]
+            run_path.write_text(json.dumps(state), encoding="utf-8")
+            text = write_html_report(run_path).read_text(encoding="utf-8")
+        self.assertIn('<a class="artifact" href="shot.png">', text)
+        self.assertIn('<img src="shot.png"', text)
+
 
 if __name__ == "__main__":
     unittest.main()

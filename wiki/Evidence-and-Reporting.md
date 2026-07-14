@@ -5,6 +5,10 @@ Each run directory is a self-contained review unit. It contains `run.json`, one
 
 ## Status semantics
 
+Evidence contract 1.1 records `functionalStatus` (`PASS`, `FAIL`, `BLOCKED`)
+separately from `usabilityStatus` (`PASS`, `REVIEW`, `NOT_RUN`). The aggregate
+workflow status below remains the orchestration result.
+
 | Status | Meaning |
 |---|---|
 | `PASS` | The configured observable contract was proven |
@@ -42,3 +46,6 @@ e2e-verify report \
 Reports summarize evidence; they do not make unreviewed screenshots or raw
 downloads safe. Inspect the run directory's publication classification before
 sharing it outside the test team.
+
+HTML reports display screenshot thumbnails linked to the original artifact.
+The link is an index, not a redaction or publication approval.

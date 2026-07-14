@@ -8,6 +8,8 @@
     "step_id",
     "harness",
     "status",
+    "functionalStatus",
+    "usabilityStatus",
     "risk",
     "started_at",
     "finished_at",
@@ -18,10 +20,12 @@
     "recommended_next_steps"
   ],
   "properties": {
-    "contract_version": {"const": "1.0"},
+    "contract_version": {"const": "1.1"},
     "step_id": {"type": "string", "minLength": 1},
     "harness": {"type": "string", "minLength": 1},
     "status": {"enum": ["PASS", "FAIL", "REVIEW", "BLOCKED", "SKIP"]},
+    "functionalStatus": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+    "usabilityStatus": {"enum": ["PASS", "REVIEW", "NOT_RUN"]},
     "risk": {"enum": ["read-only", "download", "write", "destructive", "external-send"]},
     "started_at": {"type": "string", "format": "date-time"},
     "finished_at": {"type": "string", "format": "date-time"},
@@ -36,8 +40,8 @@
           "status": {"enum": ["PASS", "FAIL", "REVIEW", "BLOCKED", "SKIP"]},
           "title": {"type": "string", "minLength": 1},
           "message": {"type": "string"},
-          "severity": {"type": "string"},
-          "evidence": {"type": "array", "items": {"type": "string"}}
+          "severity": {"enum": ["P0", "P1", "P2", "P3"]},
+          "evidence": {"type": "array", "minItems": 1, "items": {"type": "string"}}
         },
         "additionalProperties": false
       }

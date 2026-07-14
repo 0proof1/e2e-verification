@@ -6,7 +6,7 @@ import functools
 from pathlib import Path
 from typing import Any
 
-from .evidence import Risk, Status
+from .evidence import FunctionalStatus, Risk, Status, UsabilityStatus
 from .workflow import HarnessOutcome, HarnessRegistry, StepSpec
 
 
@@ -76,13 +76,31 @@ def browser_probes_harness(
     artifacts: list[dict[str, Any]] = []
     for group in ("routes", "probes"):
         for row in report.get(group, []):
-            if row.get("screenshot"):
+            screenshots = row.get("screenshots", {})
+            if row.get("screenshot") and not screenshots:
+                screenshots = {"viewport": row["screenshot"]}
+            for capture_type, path in screenshots.items():
                 artifacts.append({
                     "kind": "screenshot",
-                    "path": row["screenshot"],
-                    "description": f"{group} evidence",
+                    "path": path,
+                    "description": f"{group} {capture_type} evidence",
                     "redacted": False,
                 })
+    for path in report.get("traces", []):
+        artifacts.append({
+            "kind": "trace",
+            "path": path,
+            "description": "Playwright failure trace",
+            "redacted": False,
+        })
+    report_path = step_dir / "browser-report.json"
+    if report_path.is_file():
+        artifacts.append({
+            "kind": "json",
+            "path": str(report_path),
+            "description": "Structured browser measurements and capture index",
+            "redacted": True,
+        })
     outcome = _legacy_outcome(report)
     outcome.artifacts = artifacts
     return outcome
@@ -106,6 +124,7 @@ def _legacy_args(step: StepSpec, step_dir: Path, target_mode: str, host_alias: s
         host_alias=step.args.get("host_alias", host_alias),
         preflight=bool(step.args.get("preflight", True)),
         preflight_connect=bool(step.args.get("preflight_connect", True)),
+        trace_on_failure=bool(step.args.get("trace_on_failure", False)),
     )
 
 
@@ -114,18 +133,42 @@ def _legacy_outcome(report: dict[str, Any]) -> HarnessOutcome:
     failed = int(summary.get("failed", 0))
     server_errors = int(summary.get("serverErrors", 0))
     blocked = int(summary.get("blocked", 0))
+    review = int(summary.get("review", 0))
+    usability_assessed = int(summary.get("usabilityAssessed", 0))
     if failed or server_errors:
         status = Status.FAIL
     elif blocked:
         status = Status.BLOCKED
+    elif review:
+        status = Status.REVIEW
     else:
         status = Status.PASS
+    functional_status = (
+        FunctionalStatus.FAIL
+        if failed or server_errors
+        else FunctionalStatus.BLOCKED
+        if blocked
+        else FunctionalStatus.PASS
+    )
+    usability_status = (
+        UsabilityStatus.REVIEW
+        if review
+        else UsabilityStatus.PASS
+        if usability_assessed
+        else UsabilityStatus.NOT_RUN
+    )
     counts = {
         key: int(value)
         for key, value in summary.items()
         if isinstance(value, int) and value >= 0
     }
-    return HarnessOutcome(status=status, summary=counts, metadata={"legacy_report": report})
+    return HarnessOutcome(
+        status=status,
+        functional_status=functional_status,
+        usability_status=usability_status,
+        summary=counts,
+        metadata={"legacy_report": report},
+    )
 
 
 def _api_probe_risk(probe: dict[str, Any]) -> Risk:
