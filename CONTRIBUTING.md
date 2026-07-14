@@ -6,7 +6,7 @@ Contributions should keep the core framework-neutral and preserve the separation
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
+.venv/bin/python tools/install_checkout.py --extras dev
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 PYTHONPATH=src .venv/bin/python -m compileall -q src tests
 ```
@@ -16,5 +16,8 @@ PYTHONPATH=src .venv/bin/python -m compileall -q src tests
 - Do not commit credentials, personal information, raw customer evidence, or internal paths.
 - Keep skills concise and validate them with `quick_validate.py` from the Codex skill creator when available.
 - Document compatibility changes in `CHANGELOG.md`.
+- In CI or a clean release checkout, pass `--require-clean`; the installer also
+  verifies `GITHUB_SHA` when that environment variable is present and always
+  force-reinstalls the checkout itself with `--no-deps` after resolving extras.
 
 Mutating harness contributions must require named approval, synthetic fixtures, finalization cleanup, and independent cleanup verification.

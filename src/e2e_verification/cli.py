@@ -48,7 +48,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Evidence-first, config-driven E2E verification")
     parser.add_argument(
         "command",
-        choices=["assets", "doctor", "validate", "api", "browser", "all", "plan", "run", "resume", "report"],
+        choices=["assets", "doctor", "validate", "api", "browser", "all", "model-plan", "agent-task", "plan", "run", "resume", "report"],
     )
     parser.add_argument("--config", type=Path)
     parser.add_argument("--api-base")
@@ -57,6 +57,9 @@ def main() -> int:
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--timeout-seconds", type=int, default=30)
     parser.add_argument("--workflow", type=Path)
+    parser.add_argument("--model-plan", type=Path)
+    parser.add_argument("--provider")
+    parser.add_argument("--stage")
     parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--approve", action="append", default=[])
     parser.add_argument("--output", type=Path)
@@ -104,6 +107,40 @@ def main() -> int:
         )
         print_diagnosis(diagnosis)
         return 3 if diagnosis["summary"]["blocked"] else 0
+    if args.command == "model-plan":
+        if not args.model_plan:
+            parser.error("model-plan requires --model-plan")
+        try:
+            from .model_plan import load_model_plan, materialize_model_plan
+
+            plan = materialize_model_plan(load_model_plan(args.model_plan), args.provider)
+        except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+            print(str(error), file=sys.stderr)
+            return 2
+        print(json.dumps(plan, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "agent-task":
+        if not args.model_plan or not args.provider or not args.stage:
+            parser.error("agent-task requires --model-plan, --provider, and --stage")
+        try:
+            from .agent_task import build_agent_task, write_agent_task
+            from .model_plan import load_model_plan
+
+            task = build_agent_task(
+                load_model_plan(args.model_plan),
+                args.provider,
+                args.stage,
+                args.run_dir,
+            )
+            if args.output:
+                write_agent_task(task, args.output)
+                print(json.dumps({"agentTaskPath": str(args.output)}, ensure_ascii=False, indent=2))
+            else:
+                print(json.dumps(task, ensure_ascii=False, indent=2))
+        except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+            print(str(error), file=sys.stderr)
+            return 2
+        return 0
     if args.command in {"plan", "run", "resume", "report"}:
         return run_platform_command(args, parser)
     if not args.config:
@@ -215,9 +252,18 @@ def run_platform_command(args: argparse.Namespace, parser: argparse.ArgumentPars
         "idempotent": step.idempotent,
         "timeoutSeconds": step.timeout_seconds,
     } for step in ordered_steps(spec)]
+    model_plan = None
+    if args.model_plan:
+        try:
+            from .model_plan import load_model_plan, materialize_model_plan
+
+            model_plan = materialize_model_plan(load_model_plan(args.model_plan), args.provider)
+        except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+            print(str(error), file=sys.stderr)
+            return 2
     if args.command == "plan" or args.dry_run:
         from .workflow import workflow_digest
-        print(json.dumps({
+        payload = {
             "workflow": spec.name,
             "profile": spec.profile,
             "workflowDigest": workflow_digest(spec),
@@ -225,7 +271,10 @@ def run_platform_command(args: argparse.Namespace, parser: argparse.ArgumentPars
             "hostAlias": args.host_alias,
             "steps": plan,
             "dryRun": bool(args.dry_run),
-        }, ensure_ascii=False, indent=2))
+        }
+        if model_plan is not None:
+            payload["modelPlan"] = model_plan
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
     if not args.run_dir:
         parser.error(f"{args.command} requires --run-dir")

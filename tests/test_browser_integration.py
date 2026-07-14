@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import functools
 import http.server
 import os
@@ -11,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from e2e_verification.browser_harness import run_browser
+from e2e_verification.environment import detect_runtime
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -61,12 +63,28 @@ class BrowserIntegrationTest(unittest.TestCase):
                             web_base=None,
                             headed=False,
                             timeout_seconds=5,
-                            target_mode="host",
+                            target_mode="container-local" if detect_runtime().in_container else "host",
                             host_alias="host.docker.internal",
                             preflight_connect=False,
                         ),
                         root / "out",
                     )
+                    failing = copy.deepcopy(config)
+                    failing["browser_probes"][0]["selector"] = "[data-testid=missing]"
+                    failure_report = run_browser(
+                        failing,
+                        argparse.Namespace(
+                            web_base=None,
+                            headed=False,
+                            timeout_seconds=1,
+                            target_mode="container-local" if detect_runtime().in_container else "host",
+                            host_alias="host.docker.internal",
+                            preflight_connect=False,
+                            trace_on_failure=True,
+                        ),
+                        root / "failure-out",
+                    )
+                    failure_trace_exists = bool(failure_report["traces"]) and Path(failure_report["traces"][0]).is_file()
             finally:
                 server.shutdown()
                 server.server_close()
@@ -75,6 +93,8 @@ class BrowserIntegrationTest(unittest.TestCase):
         self.assertEqual(0, report["summary"]["serverErrors"])
         self.assertEqual(1, len(report["probes"]))
         self.assertEqual("PASS", report["probes"][0]["result"])
+        self.assertGreater(failure_report["summary"]["failed"], 0)
+        self.assertTrue(failure_trace_exists)
 
 
 if __name__ == "__main__":

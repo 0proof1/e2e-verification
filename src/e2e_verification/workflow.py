@@ -9,7 +9,17 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from .evidence import Cleanup, Risk, Status, StepResult, now, write_json_atomic
+from .evidence import (
+    CONTRACT_VERSION,
+    Cleanup,
+    FunctionalStatus,
+    Risk,
+    Status,
+    StepResult,
+    UsabilityStatus,
+    now,
+    write_json_atomic,
+)
 from .redaction import redact
 
 
@@ -42,6 +52,8 @@ class HarnessOutcome:
     artifacts: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     cleanup: Cleanup = field(default_factory=Cleanup)
+    functional_status: FunctionalStatus = FunctionalStatus.PASS
+    usability_status: UsabilityStatus = UsabilityStatus.NOT_RUN
 
 
 Harness = Callable[[StepSpec, Path], HarnessOutcome]
@@ -193,7 +205,11 @@ class WorkflowRunner:
                     break
             except Exception as caught:  # harness boundary: persist failure instead of losing the run
                 error = f"{type(caught).__name__}: {caught}"
-                outcome = HarnessOutcome(status=Status.FAIL, metadata={"error": error})
+                outcome = HarnessOutcome(
+                    status=Status.FAIL,
+                    functional_status=FunctionalStatus.FAIL,
+                    metadata={"error": error},
+                )
             if attempt < step.retries:
                 time.sleep(min(0.1 * (attempt + 1), 1.0))
         assert outcome is not None
@@ -203,6 +219,7 @@ class WorkflowRunner:
                 outcome.cleanup = Cleanup(required=True, status=Status.FAIL, message="harness did not provide required cleanup evidence")
             if outcome.cleanup.status != Status.PASS and outcome.status == Status.PASS:
                 outcome.status = Status.FAIL
+                outcome.functional_status = FunctionalStatus.FAIL
         result = StepResult(
             step_id=step.id,
             harness=step.harness,
@@ -210,6 +227,8 @@ class WorkflowRunner:
             risk=step.risk,
             started_at=started,
             finished_at=now(),
+            functionalStatus=outcome.functional_status,
+            usabilityStatus=outcome.usability_status,
             summary=outcome.summary,
             artifacts=[Artifact(**item) for item in outcome.artifacts],
             cleanup=outcome.cleanup,
@@ -227,6 +246,8 @@ class WorkflowRunner:
             risk=step.risk,
             started_at=timestamp,
             finished_at=timestamp,
+            functionalStatus=FunctionalStatus.BLOCKED,
+            usabilityStatus=UsabilityStatus.NOT_RUN,
             cleanup=Cleanup(required=step.risk in {Risk.WRITE, Risk.DESTRUCTIVE, Risk.EXTERNAL_SEND}),
             metadata={"reason": reason},
         )
@@ -240,6 +261,8 @@ class WorkflowRunner:
             risk=step.risk,
             started_at=timestamp,
             finished_at=timestamp,
+            functionalStatus=FunctionalStatus.PASS,
+            usabilityStatus=UsabilityStatus.NOT_RUN,
             cleanup=Cleanup(required=False, status=Status.SKIP),
             metadata={"reason": reason},
         )
@@ -257,7 +280,7 @@ class WorkflowRunner:
     @staticmethod
     def _new_state(spec: WorkflowSpec, run_dir: Path) -> dict[str, Any]:
         return {
-            "contract_version": "1.0",
+            "contract_version": CONTRACT_VERSION,
             "run_id": run_dir.name,
             "workflow": spec.name,
             "workflow_digest": workflow_digest(spec),
@@ -273,6 +296,10 @@ class WorkflowRunner:
         if not path.is_file():
             raise ValueError(f"cannot resume; run state does not exist: {path}")
         state = json.loads(path.read_text(encoding="utf-8"))
+        if state.get("contract_version") != CONTRACT_VERSION:
+            raise ValueError(
+                f"cannot resume evidence contract {state.get('contract_version')}; expected {CONTRACT_VERSION}"
+            )
         if state.get("workflow") != spec.name:
             raise ValueError("resume workflow does not match existing run")
         if state.get("workflow_digest") != workflow_digest(spec):

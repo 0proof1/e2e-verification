@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
 LOGIN = b"""<!doctype html><form id=login><input name=username><input name=password type=password><button type=submit>Sign in</button></form><script>login.onsubmit=(e)=>{e.preventDefault();location.href='/dashboard'}</script>"""
-DASHBOARD = b"""<!doctype html><nav>Users</nav><button data-testid=refresh>Refresh</button><p id=done hidden>Done</p><script>document.querySelector('button').onclick=()=>fetch('/api/users').then(()=>document.querySelector('#done').hidden=false)</script>"""
+DASHBOARD = b"""<!doctype html><meta name=viewport content="width=device-width, initial-scale=1"><style>body{font:16px system-ui;max-width:960px;margin:0 auto;padding:24px}main{min-height:1100px}button{padding:10px 16px}</style><nav>Users</nav><main><h1>Dashboard</h1><p>Review the current state and refresh the user list.</p><button data-testid=refresh>Refresh</button><p id=done hidden>Done</p></main><script>document.querySelector('button').onclick=()=>fetch('/api/users').then(()=>document.querySelector('#done').hidden=false)</script>"""
 
 
 class Handler(BaseHTTPRequestHandler):

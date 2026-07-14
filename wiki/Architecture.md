@@ -31,9 +31,17 @@ evidence serialization. The harness does not decide its own next task. A
 workflow document cannot load arbitrary adapter code; executable adapters are
 selected explicitly through the CLI.
 
+AI remains the adaptive control plane: it can set criteria, interpret evidence,
+choose a bounded follow-up workflow, and adjudicate conflicts. Model plans use
+provider-neutral capability slots, while `agent-task` packages redacted run
+evidence and skill instructions for an external Codex, Claude, or custom
+runtime. Model output never bypasses workflow validation or approval gates.
+
 ## Major source modules
 
 - `config.py`: profile validation and substitution
+- `model_plan.py`: provider-neutral model routing and escalation
+- `agent_task.py`: evidence-backed handoff packets for model runtimes
 - `workflow.py`: planning, gates, retries, and resume
 - `api_harness.py`: deterministic HTTP probes
 - `browser_harness.py`: browser actions and observations

@@ -23,6 +23,21 @@ Confirm Chromium is installed for the active environment, selectors belong to
 the current profile, the role reaches the expected start path, and target mode
 resolves the browser-visible URL correctly.
 
+The base package intentionally omits Playwright. Install the `browser` extra
+and its matching Chromium bundle; see [[Installation and Environments]].
+
+## The CLI does not recognize a command present in the checkout
+
+Pip may consider an already installed package with the same version satisfied.
+Run `tools/install_checkout.py` from the intended checkout. It verifies the
+expected Git revision, force-reinstalls the project with `--no-deps`, confirms
+imports resolve to that checkout, and checks the installed `e2e-verify`
+command contract. Use `--require-clean` in CI and release jobs.
+
+If the installer cannot obtain a build backend or dependency, prepare a
+wheelhouse or package cache first. An offline checkout alone is not a complete
+installation source.
+
 ## A report omits XLSX
 
 Install the optional dependency group with `pip install -e '.[xlsx]'`. HTML is

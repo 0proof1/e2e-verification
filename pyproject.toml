@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "e2e-verification"
-version = "0.1.0"
+version = "0.2.0"
 description = "Agent-guided, evidence-first E2E verification platform"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-dependencies = ["playwright>=1.49", "PyYAML>=6.0"]
+dependencies = ["PyYAML>=6.0"]
 keywords = ["e2e", "playwright", "testing", "verification", "rbac"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -22,8 +22,9 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+browser = ["playwright>=1.49"]
 xlsx = ["openpyxl>=3.1"]
-dev = ["jsonschema>=4.18"]
+dev = ["jsonschema>=4.18", "playwright>=1.49"]
 
 [project.scripts]
 e2e-verify = "e2e_verification.cli:main"

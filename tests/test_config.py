@@ -27,6 +27,21 @@ class ConfigTest(unittest.TestCase):
         })
         self.assertTrue(any("unsupported risk" in item for item in errors))
 
+    def test_visual_verification_requires_a_valid_viewport_and_title_selector(self) -> None:
+        errors = validate_config({
+            "version": 1,
+            "name": "visual",
+            "roles": [],
+            "visual_verification": {
+                "viewport": {"width": 1366, "height": 0},
+                "capture": ["viewport", "raw"],
+                "checks": ["title-in-first-viewport"],
+            },
+        })
+        self.assertTrue(any("viewport.height" in item for item in errors))
+        self.assertTrue(any("unsupported" in item for item in errors))
+        self.assertTrue(any("title_selector" in item for item in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

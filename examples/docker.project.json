@@ -22,6 +22,12 @@
     "submit_selector": "button[type=submit]",
     "settle_ms": 100
   },
+  "visual_verification": {
+    "viewport": {"width": 1366, "height": 768},
+    "capture": ["viewport", "full-page"],
+    "checks": ["scroll-top", "title-in-first-viewport", "horizontal-overflow", "clipping"],
+    "title_selector": "h1"
+  },
   "roles": [
     {
       "name": "ADMIN",

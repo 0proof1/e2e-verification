@@ -52,6 +52,32 @@ e2e-verification은 이런 질문을 검토 가능한 workflow와 versioned evid
 | **Harness** | 결정론적인 API·browser 동작과 증거 생성 | 스스로 다음 조사 항목 결정 |
 | **Profile** | 역할, login, route, probe, fixture 계약 기술 | 플랫폼 core 동작 변경 |
 
+### AI는 적응형 control plane입니다
+
+모델이 없어도 safety gate, redaction, 결정론적 harness, resume, report는
+독립적으로 쓸 수 있습니다. 이 프로젝트의 차별적인 루프는 AI가 기록된 증거를
+바탕으로 제한된 후속 workflow를 선택하고, 사용성을 해석하고, 실패를 분류하고,
+애매한 판단을 상향하는 데 있습니다. Screenshot, DOM 수치, retry, assertion은
+모델이 아니라 harness가 담당합니다.
+
+모델 작업 계획은 특정 공급자의 세대명을 고정하지 않고 역량 slot을 사용합니다.
+Codex, Claude 또는 다른 모델을 실행 시점에 연결할 수 있습니다.
+
+```bash
+e2e-verify model-plan \
+  --model-plan examples/model-plan.example.json \
+  --provider codex
+
+e2e-verify plan \
+  --workflow workflows/pilot-visual.json \
+  --model-plan examples/model-plan.example.json \
+  --provider codex
+```
+
+실행 뒤 `agent-task`는 외부 모델 orchestrator가 소비할 redaction된 증거 기반
+작업 packet을 만듭니다. Packet 생성은 모델 호출도 mutation 승인도 아닙니다.
+자세한 내용은 [모델 orchestration](docs/model-orchestration.md)을 참고하세요.
+
 ## 설치
 
 Python 3.11 이상이 필요합니다. 브라우저 검증이 필요하면 Chromium도
@@ -60,7 +86,7 @@ Python 3.11 이상이 필요합니다. 브라우저 검증이 필요하면 Chrom
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -e .
+python3 -m pip install -e '.[browser]'
 python3 -m playwright install chromium
 e2e-verify --help
 ```
@@ -77,7 +103,7 @@ Windows PowerShell에서는 다음처럼 실행합니다.
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install -e .
+python -m pip install -e '.[browser]'
 python -m playwright install chromium
 e2e-verify --help
 ```
@@ -85,7 +111,7 @@ e2e-verify --help
 빌드된 wheel을 사용할 수도 있습니다.
 
 ```bash
-python -m pip install path/to/e2e_verification-0.1.0-py3-none-any.whl
+python -m pip install path/to/e2e_verification-0.2.0-py3-none-any.whl "playwright>=1.49"
 python -m playwright install chromium
 ```
 
@@ -93,15 +119,37 @@ python -m playwright install chromium
 
 | 환경 | 권장 설치 | 추가 요구사항 |
 |---|---|---|
-| Linux, macOS, Windows host | Python 가상환경 | browser probe에는 Chromium 필요 |
+| API 전용 host | `.venv/bin/pip install -e .` | 기본 PyYAML 의존성만 필요 |
+| Browser host | `.venv/bin/pip install -e '.[browser]'` | Playwright와 일치하는 Chromium bundle |
+| 개발 또는 CI | `tools/install_checkout.py --extras dev` | Git checkout과 test 의존성 |
 | Docker 또는 Compose | 포함된 `Dockerfile`, `compose.yaml` | Compose를 지원하는 Docker Engine |
-| API 전용 검증 | Python package | browser 설치 불필요 |
-| 폐쇄망 host | 미리 반입한 wheel과 browser bundle | Playwright version과 일치하는 binary |
+| 폐쇄망 host | 미리 반입한 wheelhouse와 browser bundle | 의존성, build backend, platform 일치 binary |
 
 Python package와 unit matrix는 Linux의 Python 3.11-3.13, macOS와 Windows의
 Python 3.12를 대상으로 합니다. 실제 API, Chromium, Docker 통합 검증은 현재
 Linux에서 완료됐습니다. ARM64, Alpine/musl, WSL, 사설 CA, proxy 환경은 먼저
 `doctor`와 합성 smoke test를 통과시킨 뒤 지원 대상으로 판단해야 합니다.
+
+### Checkout을 재현 가능하게 다시 설치하기
+
+같은 package version으로 반복 개발할 때는 checkout installer가 선택한 의존성
+묶음만 해석하고 프로젝트를 한 번 강제 재설치하게 합니다.
+
+```bash
+.venv/bin/python tools/install_checkout.py --extras dev
+```
+
+CI와 release 작업에서는 local 수정도 거부해야 합니다. `GITHUB_SHA`가 있으면
+자동으로 검증하며 `--expected-sha`로 명시할 수도 있습니다.
+
+```bash
+.venv/bin/python tools/install_checkout.py --extras dev --require-clean
+```
+
+Installer는 source revision, import 경로, 설치된 console entry point와 현재
+`model-plan`·`agent-task` 명령을 확인합니다. 따라서 같은 version이 이미
+설치됐다는 pip 판정으로 이전 CLI가 유지되는 문제를 막습니다. 자세한 내용은
+[설치와 환경 Wiki](wiki/Installation-and-Environments.md)를 참고하세요.
 
 ## 5분 빠른 시작
 
@@ -158,6 +206,25 @@ docker compose run --rm verifier
 container 안의 `localhost`가 host인지 같은 container인지 임의로 추측하지
 않습니다. 모호한 경우 `BLOCKED`로 멈추고 명시적인 mode를 요구합니다. 자세한
 내용은 [환경과 target mode](docs/environments.md)를 참고하세요.
+
+### 합성 visual pilot 실행하기
+
+저장소 소유의 pilot은 1366x768 viewport/full-page screenshot 쌍, scroll과 title
+가시성, overflow/clipping 측정값을 수집하고 한 번 재시도한 실패에는 trace를
+남깁니다.
+
+```bash
+docker compose build
+docker compose run --rm verifier run \
+  --workflow workflows/pilot-visual.json \
+  --run-dir /evidence/runs/pilot-001
+docker compose run --rm verifier report \
+  --run-dir /evidence/runs/pilot-001
+```
+
+Pilot마다 새 run directory를 사용합니다. CI는 verifier image build 시
+`SOURCE_SHA`를 전달하므로 `doctor`가 정확한 source revision을 보고할 수
+있습니다.
 
 ## 격리된 테스트 애플리케이션 실행
 
@@ -293,6 +360,8 @@ e2e-verify plan \
 - `verification-lead`: 가장 작은 안전한 workflow를 계획하고 조정합니다.
 - `failure-triage`: 실패를 분류하고 최소 재현 경로를 제안합니다.
 - `evidence-reviewer`: 증거, redaction, cleanup, 공개 가능성을 검토합니다.
+- `evidence-collector`: 제한된 수집을 실행하고 viewport/full-page 증거 쌍을 보존합니다.
+- `ux-reviewer`: 수집기를 구현하고 기능 판정과 독립적으로 사용성을 검토합니다.
 
 설치된 schema, agent, skill, 예제의 위치는 다음 명령으로 찾을 수 있습니다.
 
@@ -301,6 +370,15 @@ e2e-verify assets
 ```
 
 ## 상태와 종료 코드
+
+Evidence contract 1.1은 다음 두 질문을 분리합니다.
+
+| 필드 | 값 | 질문 |
+|---|---|---|
+| `functionalStatus` | `PASS`, `FAIL`, `BLOCKED` | 관찰 가능한 제품 계약이 동작했는가? |
+| `usabilityStatus` | `PASS`, `REVIEW`, `NOT_RUN` | 사용성이 허용 가능한가, 추가 판단이 필요한가? |
+
+Workflow 종합 상태는 기존 의미를 유지합니다.
 
 | 상태 | 의미 |
 |---|---|
@@ -311,6 +389,10 @@ e2e-verify assets
 | `SKIP` | workflow 조건이 step을 선택하지 않음 |
 
 증거가 없다는 사실을 성공으로 바꾸지 않습니다.
+
+Evidence contract 1.0 run directory는 계속 열람할 수 있지만 0.2에서 resume할
+수 없습니다. Contract를 섞지 말고 새로운 1.1 run directory에서 시작하세요.
+자세한 내용은 [0.2 migration 가이드](docs/migration-0.2.md)를 참고하세요.
 
 | 종료 코드 | 의미 |
 |---|---|
@@ -339,8 +421,11 @@ agents/                    이식 가능한 검증 역할
 skills/                    재사용 절차와 UI metadata
 workflows/                 선언형 실행 graph
 schemas/                   workflow, agent, run, step 계약
+wiki/                      GitHub Wiki 원본과 운영 가이드
 src/e2e_verification/
   config.py                profile 검증과 substitution
+  model_plan.py            공급자 중립 모델 routing과 상향 규칙
+  agent_task.py            외부 모델 runtime용 redaction된 증거 handoff
   environment.py           runtime, endpoint, preflight 진단
   api_harness.py           결정론적인 API probe
   browser_harness.py       결정론적인 browser probe
@@ -354,18 +439,45 @@ tests/                     계약과 실행 테스트
 ```
 
 공개 저장소에는 제품 중립적인 플랫폼 코드와 합성 예제만 포함합니다.
+Source archive에는 검토된 Wiki 원본이 포함되고, wheel에는 runtime schema,
+agent, skill, workflow, example asset이 포함됩니다.
 `tools/public_repo_gate.py`는 공개 후보의 민감정보, 절대 사용자 경로, 생성 증거,
 Git 이력을 검사합니다.
+
+## 성숙도와 검증 한계
+
+Version 0.2는 Alpha이며 현재 **합성 검증 완료(Synthetic-verified)** 단계이지
+외부 검증 완료 상태가 아닙니다. 저장소가 소유한 Linux 합성 target에서는 계약을
+증명했지만, 공개된 실제 production project 적용 사례, 독립 보안 감사, PyPI
+release, 다중 browser 결과, 폭넓은 maintainer·community 채택은 아직 없습니다.
+공급자 중립 모델 routing과 task packet은 구현됐지만, vendor model 호출과 운영
+project 자율 탐색은 외부 orchestrator의 책임입니다.
+
+별도 `feat/ui-ux-evidence-v2` feature line은 계약과 공급망 검토 중입니다. 다중
+상태 UI audit과 bundled axe-core 실행은 아직 `main`의 제공 기능으로 안내하지
+않습니다. 자세한 내용은
+[UI Audit v2 통합 노트](docs/ui-audit-v2-integration.md)를 참고하세요.
+
+새 product profile, adapter, platform, proxy, private CA 환경은 `doctor`와 합성
+smoke run을 통과하기 전까지 검증된 대상으로 간주하지 마세요. 자세한 내용은
+[준비 상태와 검증 주장](docs/readiness.md), [Roadmap](ROADMAP.md)을 참고하세요.
 
 ## 개발과 release 검증
 
 ```bash
-python -m pip install -e '.[dev]'
+python tools/install_checkout.py --extras dev
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 python3 -m compileall -q src tests tools
 python3 tools/release_check.py
 python3 tools/public_repo_gate.py
 ```
+
+Checkout installer는 `GITHUB_SHA`가 있으면 실제 checkout과 일치하는지 확인하고,
+프로젝트 자체를 `--force-reinstall --no-deps`로 다시 설치합니다. 따라서 같은
+package version이 이미 설치되었다는 pip 판정 때문에 이전 CLI가 유지되는 일을
+막습니다. 이어서 package가 현재 checkout에서 import되는지, 실제 설치된
+`e2e-verify`가 이 버전의 `model-plan`과 `agent-task` 명령을 노출하는지도
+검증합니다.
 
 배포 archive도 별도로 검사합니다.
 
@@ -377,7 +489,13 @@ python3 tools/generate_sbom.py dist/sbom.cdx.json
 
 관련 문서:
 
+- [Wiki 홈](wiki/Home.md)
+- [Wiki 설치와 환경](wiki/Installation-and-Environments.md)
+- [Wiki 0.2 migration](wiki/Migration-0.2.md)
+- [UI Audit v2 통합 노트](docs/ui-audit-v2-integration.md)
 - [Architecture](docs/architecture.md)
+- [모델 orchestration](docs/model-orchestration.md)
+- [0.2 migration 가이드](docs/migration-0.2.md)
 - [환경과 target mode](docs/environments.md)
 - [오픈소스 경계](docs/open-source-boundary.md)
 - [보안 정책](SECURITY.md)

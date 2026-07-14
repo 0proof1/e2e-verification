@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from e2e_verification.api_harness import run_api
+from e2e_verification.environment import detect_runtime
 
 
 class ApiHandler(BaseHTTPRequestHandler):
@@ -64,7 +65,7 @@ class ApiIntegrationTest(unittest.TestCase):
                         config,
                         argparse.Namespace(
                             api_base=None,
-                            target_mode="host",
+                            target_mode="container-local" if detect_runtime().in_container else "host",
                             host_alias="host.docker.internal",
                             preflight_connect=False,
                         ),

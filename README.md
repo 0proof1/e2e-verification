@@ -44,13 +44,39 @@ This project turns those questions into inspectable workflows and versioned evid
 | **Harness** | Perform deterministic API/browser work and emit evidence | Decide its own next task |
 | **Profile** | Describe product roles, login, routes, probes, and fixtures | Change platform-core behavior |
 
+### AI is the adaptive control plane
+
+Without a model, the safety gates, redaction, deterministic harnesses, resume,
+and reports remain useful. The differentiating loop is AI-guided: an agent uses
+recorded evidence to choose a bounded follow-up workflow, interpret usability,
+triage failures, or escalate an ambiguous decision. Models never replace the
+harness for screenshots, DOM measurements, retries, or assertions.
+
+Model work plans use capability slots instead of hard-coded vendor generations.
+Bind any Codex, Claude, or custom models at runtime:
+
+```bash
+e2e-verify model-plan \
+  --model-plan examples/model-plan.example.json \
+  --provider codex
+
+e2e-verify plan \
+  --workflow workflows/pilot-visual.json \
+  --model-plan examples/model-plan.example.json \
+  --provider codex
+```
+
+After a run, `agent-task` produces a redacted, evidence-backed task packet for
+an external model orchestrator. Generating a packet does not invoke a model or
+authorize a mutation. See [Model orchestration](docs/model-orchestration.md).
+
 ## Quick start
 
 Requires Python 3.11 or newer.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e .
+.venv/bin/pip install -e '.[browser]'
 .venv/bin/playwright install chromium
 ```
 
@@ -62,16 +88,39 @@ packages with `python -m playwright install --with-deps chromium`.
 
 | Environment | Recommended path | What is additionally required |
 |---|---|---|
-| Linux, macOS, Windows host | Python virtual environment | Chromium for browser probes |
+| API-only host | `.venv/bin/pip install -e .` | Base PyYAML dependency only |
+| Browser host | `.venv/bin/pip install -e '.[browser]'` | Matching Playwright Chromium bundle |
+| Development or CI | `tools/install_checkout.py --extras dev` | Git checkout and test dependencies |
 | Docker or Compose | Included `Dockerfile` and `compose.yaml` | Docker Engine with Compose |
-| API-only verification | Python package | No browser installation |
-| Air-gapped host | Preloaded wheel and browser bundle | Matching Playwright browser binaries |
+| Air-gapped host | Preloaded wheelhouse and browser bundle | Dependencies, build backend, and platform-matching binaries |
 
 The package and unit-test matrix targets Python 3.11-3.13 on Linux and Python
 3.12 on macOS and Windows. Full API, Chromium, and Docker integration is
 currently exercised on Linux. ARM64, Alpine/musl, WSL, private-CA, and proxy
 environments should run `e2e-verify doctor` and a synthetic smoke test before
 being treated as validated deployment targets.
+
+### Reinstall a checkout reproducibly
+
+For repeated development installs, let the checkout installer resolve only the
+selected dependency groups and then force-reinstall the project once:
+
+```bash
+.venv/bin/python tools/install_checkout.py --extras dev
+```
+
+CI and release jobs should also reject local modifications. `GITHUB_SHA` is
+verified automatically when present; `--expected-sha` can provide it
+explicitly.
+
+```bash
+.venv/bin/python tools/install_checkout.py --extras dev --require-clean
+```
+
+The installer verifies the source revision, import path, installed console
+entry point, and current `model-plan` and `agent-task` commands. This prevents
+pip's same-version satisfaction check from leaving an older CLI active. See
+[Installation and environments](wiki/Installation-and-Environments.md).
 
 Validate the synthetic example profile and inspect its read-only workflow without contacting a target:
 
@@ -127,6 +176,24 @@ For an optional tabular export, install the extra and select XLSX explicitly:
 ```
 
 The run directory contains `run.json`, one `result.json` per executed step, redacted logs, and selected artifacts. HTML is the default human report; XLSX remains an optional profile exporter.
+
+### Run the synthetic visual pilot
+
+The repository-owned pilot collects paired 1366x768 viewport/full-page
+screenshots, scroll and title visibility measurements, overflow/clipping data,
+and a failure trace after one retry:
+
+```bash
+docker compose build
+docker compose run --rm verifier run \
+  --workflow workflows/pilot-visual.json \
+  --run-dir /evidence/runs/pilot-001
+docker compose run --rm verifier report \
+  --run-dir /evidence/runs/pilot-001
+```
+
+Use a new run directory for each pilot. CI supplies `SOURCE_SHA` while building
+the verifier image so `doctor` can report the exact source revision.
 
 ## Safety is part of the contract
 
@@ -184,6 +251,8 @@ Portable role definitions under `agents/` compose those skills:
 - `verification-lead` plans and coordinates the smallest safe workflow.
 - `failure-triage` classifies failures and proposes a minimal reproduction.
 - `evidence-reviewer` audits completeness, redaction, cleanup, and publication readiness.
+- `evidence-collector` runs bounded pilot/full collection and preserves paired evidence.
+- `ux-reviewer` builds collectors and reviews usability independently from functionality.
 
 These definitions are intentionally thin. Product behavior stays in profiles; reliable execution stays in harness code.
 
@@ -195,6 +264,15 @@ e2e-verify assets
 
 ## Status semantics
 
+Evidence contract 1.1 keeps the two questions independent:
+
+| Field | Values | Question |
+|---|---|---|
+| `functionalStatus` | `PASS`, `FAIL`, `BLOCKED` | Did the observable product contract work? |
+| `usabilityStatus` | `PASS`, `REVIEW`, `NOT_RUN` | Is the UX acceptable or does it need judgment? |
+
+The aggregate workflow status remains:
+
 | Status | Meaning |
 |---|---|
 | `PASS` | The configured observable contract was proven |
@@ -205,6 +283,10 @@ e2e-verify assets
 
 Missing evidence is never converted into success. CLI exit codes are `0` for completed/reviewed work, `2` for failure or invalid invocation, and `3` for a safely blocked workflow.
 
+Evidence contract 1.0 run directories remain reviewable but cannot resume
+under 0.2. Start a new 1.1 run directory instead of mixing contracts; see
+[0.2 migration guidance](docs/migration-0.2.md).
+
 ## Repository map
 
 ```text
@@ -212,8 +294,11 @@ agents/                    portable verification roles
 skills/                    reusable procedures and UI metadata
 workflows/                 declarative execution graphs
 schemas/                   workflow, agent, run, and step contracts
+wiki/                      GitHub Wiki source and operator guidance
 src/e2e_verification/
   config.py                profile validation and substitution
+  model_plan.py            provider-neutral model routing and escalation
+  agent_task.py            redacted evidence handoffs for external model runtimes
   api_harness.py           deterministic API probes
   browser_harness.py       deterministic browser probes
   workflow.py              planning, gates, retries, and resume
@@ -224,7 +309,27 @@ profiles/<project>/        removable product adapters and references
 tests/                     contract and execution tests
 ```
 
-The repository contains only product-neutral platform code and synthetic examples. Python wheel and source-release boundaries are defined by `pyproject.toml`, `MANIFEST.in`, and `PUBLICATION_ALLOWLIST.txt`. The stricter `tools/public_repo_gate.py` scans the complete tracked source candidate before repository publication.
+The repository contains only product-neutral platform code and synthetic examples. Python wheel and source-release boundaries are defined by `pyproject.toml`, `MANIFEST.in`, and `PUBLICATION_ALLOWLIST.txt`. Source archives include the reviewed Wiki source; wheels include runtime schemas, agents, skills, workflows, and examples. The stricter `tools/public_repo_gate.py` scans the complete tracked source candidate before repository publication.
+
+## Maturity and validation limits
+
+Version 0.2 is Alpha and currently **synthetic-verified**, not externally
+validated. The repository demonstrates its contracts against repository-owned
+targets on Linux, but it does not yet provide a public production-project case
+study, independent security audit, PyPI release, multi-browser result, or broad
+maintainer/community adoption. Provider-neutral model routing and task packets
+are implemented; vendor model invocation and autonomous production exploration
+remain external responsibilities.
+
+The separate `feat/ui-ux-evidence-v2` feature line is under contract and
+supply-chain review; multi-state UI audit and bundled axe-core execution are
+not advertised as `main` features yet. See the
+[UI Audit v2 integration note](docs/ui-audit-v2-integration.md).
+
+Treat new product profiles, adapters, platforms, proxies, and private-CA
+environments as unvalidated until they pass `doctor` and a synthetic smoke run.
+See [Readiness and validation claims](docs/readiness.md) and the
+[Roadmap](ROADMAP.md).
 
 ## Direct commands
 
@@ -241,11 +346,17 @@ These commands use the same product-neutral configuration and evidence contracts
 ## Development
 
 ```bash
-.venv/bin/pip install -e '.[dev]'
+.venv/bin/python tools/install_checkout.py --extras dev
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 python3 -m compileall -q src tests
 python3 tools/release_check.py
 ```
+
+The checkout installer verifies `GITHUB_SHA` when present and force-reinstalls
+the project itself with `--no-deps`, so pip's same-version satisfaction check
+cannot leave an older CLI active. It then imports the package
+from this checkout and invokes the installed console entry point, requiring the
+current `model-plan` and `agent-task` commands to appear.
 
 Release artifacts must also pass:
 
@@ -256,7 +367,13 @@ python3 tools/generate_sbom.py dist/sbom.cdx.json
 
 Architecture and policy details:
 
+- [Wiki home](wiki/Home.md)
+- [Wiki installation and environments](wiki/Installation-and-Environments.md)
+- [Wiki migration 0.2](wiki/Migration-0.2.md)
+- [UI Audit v2 integration note](docs/ui-audit-v2-integration.md)
 - [Architecture](docs/architecture.md)
+- [Model orchestration](docs/model-orchestration.md)
+- [0.2 migration guidance](docs/migration-0.2.md)
 - [Open-source boundary](docs/open-source-boundary.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)

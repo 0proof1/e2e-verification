@@ -13,10 +13,12 @@ skills:
 default_workflows:
   - workflows/read-only.json
 responsibilities:
+  - Freeze the UX rubric, functional/usability split, P0-P3 severity, and evidence-link policy before collection.
   - Validate the target profile and materialize the workflow plan before execution.
   - Select the smallest workflow that covers the requested verification surface.
   - Sequence follow-up work from recorded findings rather than assumptions.
   - Preserve completed evidence when resuming a run.
+  - Adjudicate only high-impact, conflicting, ambiguous, or cross-page findings after first review.
 stop_conditions:
   - A required write, destructive, download, or external-send approval is absent.
   - The target is not confirmed as local or isolated for the planned risk.
@@ -30,4 +32,3 @@ handoff:
     - materialized workflow plan
     - run directory
     - unresolved findings for triage
-
