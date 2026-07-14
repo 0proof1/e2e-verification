@@ -131,6 +131,11 @@ def run_ui_audit(
                         settle_ms=int(defaults.get("settle_ms", 500)),
                     )
                     result["cases"].append(case)
+                    if case.get("measurements", {}).get("login_recovered"):
+                        # Reuse the refreshed cookie in later isolated contexts;
+                        # otherwise every remaining matrix case starts stale and
+                        # repeats the recovery probe and login.
+                        storage_states[role_name] = context.storage_state()
                     context.close()
         browser.close()
 
