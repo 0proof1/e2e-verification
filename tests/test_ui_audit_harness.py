@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 
-from e2e_verification.ui_audit_harness import _aggregate_axis, _case_id, _measure_menu_scroll_reset, _summarize_cases
+from e2e_verification.ui_audit_harness import (
+    _aggregate_axis,
+    _case_id,
+    _measure_menu_scroll_reset,
+    _operation_timeout_ms,
+    _summarize_cases,
+)
 
 
 class UiAuditHarnessTest(unittest.TestCase):
@@ -33,6 +40,11 @@ class UiAuditHarnessTest(unittest.TestCase):
             "SKIP",
             _measure_menu_scroll_reset(object(), "http://example.test", None, "/#/command", 0)["status"],
         )
+
+    def test_operation_timeout_is_capped_by_project_request_timeout(self) -> None:
+        config = {"defaults": {"request_timeout_seconds": 30}}
+        self.assertEqual(30_000, _operation_timeout_ms(config, SimpleNamespace(timeout_seconds=600)))
+        self.assertEqual(12_000, _operation_timeout_ms(config, SimpleNamespace(timeout_seconds=12)))
 
 
 if __name__ == "__main__":

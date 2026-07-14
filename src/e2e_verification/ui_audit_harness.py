@@ -14,6 +14,14 @@ from .ui_audit_config import load_state_fixture, load_ui_audit_config
 
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+SESSION_PROBE_TIMEOUT_MS = 5_000
+
+
+def _operation_timeout_ms(project_config: dict[str, Any], options: Any) -> int:
+    """Keep a workflow budget from becoming a single Playwright wait budget."""
+    workflow_seconds = int(getattr(options, "timeout_seconds", 30))
+    request_seconds = int(project_config.get("defaults", {}).get("request_timeout_seconds", 30))
+    return max(1, min(workflow_seconds, request_seconds)) * 1000
 
 
 def run_ui_audit(
@@ -63,7 +71,7 @@ def run_ui_audit(
         "cases": [],
     }
     defaults = project_config.get("defaults", {})
-    timeout_ms = int(getattr(options, "timeout_seconds", 30)) * 1000
+    timeout_ms = _operation_timeout_ms(project_config, options)
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=not bool(getattr(options, "headed", False)))
@@ -205,7 +213,10 @@ def _run_case(
         authenticated_selector = str(role_config.get("authenticated_selector", ""))
         if authenticated_selector:
             try:
-                page.locator(authenticated_selector).first.wait_for(state="visible")
+                page.locator(authenticated_selector).first.wait_for(
+                    state="visible",
+                    timeout=min(timeout_ms, SESSION_PROBE_TIMEOUT_MS),
+                )
             except Exception:
                 # A captured storage state can become stale during a long matrix.
                 # Recover once in the isolated case context instead of converting
