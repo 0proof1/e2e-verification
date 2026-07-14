@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from e2e_verification.accessibility import (
+    _incomplete_requires_review,
     axe_asset_sha256,
     audit_keyboard_navigation,
     load_axe_source,
@@ -77,6 +78,15 @@ class AccessibilityUnitTest(unittest.TestCase):
         self.assertEqual("BLOCKED", result["usability_status"])
         self.assertEqual("axe-execution-failed", result["issues"][0]["id"])
 
+    def test_only_scroll_clipped_contrast_incomplete_is_informational(self) -> None:
+        clipped = {
+            "id": "color-contrast",
+            "nodes": [{"failure_summary": "Element's background color could not be determined because it's partially obscured by another element"}],
+        }
+        semantic = {"id": "th-has-data-cells", "nodes": [{"failure_summary": "Table data cells are missing"}]}
+        self.assertFalse(_incomplete_requires_review(clipped))
+        self.assertTrue(_incomplete_requires_review(semantic))
+
     def test_keyboard_uses_tab_only_and_detects_cycle(self) -> None:
         page = FakePage([focus_step("one"), focus_step("two"), focus_step("one")])
         result = audit_keyboard_navigation(page, max_tabs=10)
@@ -90,6 +100,14 @@ class AccessibilityUnitTest(unittest.TestCase):
         result = audit_keyboard_navigation(page, max_tabs=3)
         self.assertEqual({"positive-tabindex", "focus-indicator-not-detected"}, {row["id"] for row in result["issues"]})
         self.assertEqual("REVIEW", result["usability_status"])
+
+    def test_document_body_terminates_traversal_without_focus_issue(self) -> None:
+        body = focus_step("body")
+        body.update({"tag": "BODY", "selector": "body", "focus_visible": False, "indicator_detected": False})
+        result = audit_keyboard_navigation(FakePage([focus_step("one"), body]), max_tabs=3)
+        self.assertEqual(["one"], [step["key"] for step in result["steps"]])
+        self.assertEqual([], result["issues"])
+        self.assertEqual("PASS", result["usability_status"])
 
     def test_combined_contract_separates_keyboard_and_focus(self) -> None:
         page = FakePage([focus_step("one", indicator=False), focus_step("one")])

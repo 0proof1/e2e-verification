@@ -53,13 +53,17 @@ def run_axe_audit(page: Any, tags: Iterable[str] | None = None) -> dict[str, Any
         name: [_normalize_axe_rule(rule) for rule in raw.get(name, [])]
         for name in ("violations", "incomplete", "passes", "inapplicable")
     }
+    reviewable_incomplete = [rule for rule in groups["incomplete"] if _incomplete_requires_review(rule)]
     return _with_statuses({
         "engine": {"name": "axe-core", "version": raw.get("testEngine", {}).get("version", "")},
         "asset_sha256": axe_asset_sha256(),
         "tags": selected_tags,
         **groups,
-        "summary": {name: len(rows) for name, rows in groups.items()},
-    }, "PASS", "REVIEW" if groups["violations"] or groups["incomplete"] else "PASS")
+        "summary": {
+            **{name: len(rows) for name, rows in groups.items()},
+            "reviewable_incomplete": len(reviewable_incomplete),
+        },
+    }, "PASS", "REVIEW" if groups["violations"] or reviewable_incomplete else "PASS")
 
 
 def audit_keyboard_navigation(page: Any, max_tabs: int = DEFAULT_MAX_TABS) -> dict[str, Any]:
@@ -75,6 +79,11 @@ def audit_keyboard_navigation(page: Any, max_tabs: int = DEFAULT_MAX_TABS) -> di
             page.keyboard.press("Tab")
             step = page.evaluate(_FOCUS_SNAPSHOT_SCRIPT)
             step["index"] = index + 1
+            # Browsers hand focus back to the document after the last tabbable
+            # control. BODY/HTML is a traversal terminator, not a user control
+            # that needs its own focus ring.
+            if step.get("tag") in {"BODY", "HTML"}:
+                break
             steps.append(step)
             key = str(step.get("key", ""))
             if index == 0:
@@ -82,8 +91,6 @@ def audit_keyboard_navigation(page: Any, max_tabs: int = DEFAULT_MAX_TABS) -> di
             elif key and key == first_key:
                 cycle_complete = True
                 steps.pop()  # The repeated first target terminates the cycle.
-                break
-            if step.get("tag") in {"BODY", "HTML"}:
                 break
     except Exception as error:
         return _blocked_result("keyboard-audit-failed", error, max_tabs=max_tabs)
@@ -98,8 +105,6 @@ def audit_keyboard_navigation(page: Any, max_tabs: int = DEFAULT_MAX_TABS) -> di
             issues.append(_issue("focus-visible-selector-missing", step))
         if not step.get("indicator_detected", False):
             issues.append(_issue("focus-indicator-not-detected", step))
-    if steps and steps[-1].get("tag") in {"BODY", "HTML"}:
-        issues.append(_issue("focus-escaped-to-document", steps[-1]))
     if len(steps) == max_tabs and not cycle_complete:
         issues.append({"id": "tab-limit-reached", "severity": "REVIEW", "step": max_tabs})
 
@@ -210,6 +215,21 @@ def _normalize_axe_rule(rule: dict[str, Any]) -> dict[str, Any]:
             for node in rule.get("nodes", [])
         ],
     }
+
+
+def _incomplete_requires_review(rule: dict[str, Any]) -> bool:
+    """Keep unresolved axe checks reviewable except viewport clipping noise.
+
+    axe cannot calculate contrast for content currently clipped by a scroll
+    container and reports it as incomplete. The audit keeps that evidence, but
+    it is not a contrast failure; actual violations and every other incomplete
+    reason still require review.
+    """
+    nodes = rule.get("nodes", [])
+    return not nodes or any(
+        "partially obscured by another element" not in str(node.get("failure_summary", "")).lower()
+        for node in nodes
+    )
 
 
 def _issue(identifier: str, step: dict[str, Any]) -> dict[str, Any]:
