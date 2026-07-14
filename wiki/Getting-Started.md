@@ -7,12 +7,15 @@ Python 3.11 or newer is required.
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
+python -m pip install -e '.[browser]'
 python -m playwright install chromium
 ```
 
 On PowerShell, activate with `.venv\Scripts\Activate.ps1`. API-only checks do
-not require a browser installation.
+not require Playwright or a browser installation and can use
+`python -m pip install -e .`. Development and repeated checkout installs should
+follow [[Installation and Environments]] so an older same-version CLI cannot
+remain active.
 
 ## Validate without contacting a target
 
@@ -58,3 +61,6 @@ e2e-verify report --run-dir evidence/runs/first-run
 ```
 
 Before adding write steps, read [[Safety Model]].
+
+Existing 0.1 users should also read [[Migration 0.2]] before resuming an old
+run directory.

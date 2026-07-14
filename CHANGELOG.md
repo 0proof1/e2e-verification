@@ -5,6 +5,15 @@ versioning after the first public-ready release.
 
 ## Unreleased
 
+### Documentation
+
+- Added Wiki guidance for minimal installation profiles, fixed-SHA checkout
+  reinstalls, Docker provenance and caching, offline prerequisites, and the
+  evidence-contract 1.1 migration.
+- Added `wiki/` to the public-source allowlist, source distribution manifest,
+  and release text scan so Wiki content follows the same publication boundary
+  checks as repository documentation.
+
 ## 0.2.0 - 2026-07-14
 
 ### Added

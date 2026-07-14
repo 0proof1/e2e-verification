@@ -2,11 +2,13 @@
 
 - [[Home]]
 - [[Getting Started]]
+- [[Installation and Environments]]
 - [[Architecture]]
 - [[Model Orchestration]]
 - [[Profiles and Workflows]]
 - [[Safety Model]]
 - [[Evidence and Reporting]]
+- [[Migration 0.2]]
 - [[Troubleshooting]]
 
 ---

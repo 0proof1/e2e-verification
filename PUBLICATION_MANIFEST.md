@@ -4,7 +4,7 @@ This file separates publishable source from generated verification evidence.
 
 ## Publish
 
-- `src/`, `schemas/`, `agents/`, `skills/`, `workflows/`, and synthetic `examples/`
+- `src/`, `schemas/`, `agents/`, `skills/`, `workflows/`, synthetic `examples/`, and `wiki/`
 - Product-neutral profile code and documentation that passes the checks below
 - License, security, contribution, changelog, and architecture documentation
 

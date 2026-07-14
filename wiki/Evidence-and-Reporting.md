@@ -20,6 +20,10 @@ workflow status below remains the orchestration result.
 Missing evidence never becomes `PASS`. A safely blocked run preserves completed
 evidence so the same workflow and run directory can resume later.
 
+Evidence contract 1.0 run directories are not resumable with 0.2. The files
+remain reviewable, but a 1.1 run must start in a new directory. See
+[[Migration 0.2]].
+
 ```bash
 e2e-verify resume \
   --workflow workflows/read-only.json \

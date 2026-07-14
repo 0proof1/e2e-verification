@@ -8,6 +8,7 @@ recursive-include skills *.md *.yaml
 recursive-include workflows *.json
 recursive-include examples *.json *.md *.py Dockerfile
 recursive-include docs *.md
+recursive-include wiki *.md
 recursive-include tools *.py
 recursive-include .github *.md *.yml
 prune evidence

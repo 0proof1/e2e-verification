@@ -48,6 +48,7 @@ class PublicationTest(unittest.TestCase):
         allowlist = (ROOT / "PUBLICATION_ALLOWLIST.txt").read_text(encoding="utf-8")
         self.assertNotIn("compat/", allowlist)
         self.assertIn("examples/", allowlist)
+        self.assertIn("wiki/", allowlist)
 
     def test_obsolete_local_workspaces_are_absent(self) -> None:
         self.assertFalse((ROOT / "compat").exists())
@@ -56,7 +57,7 @@ class PublicationTest(unittest.TestCase):
 
     def test_public_tree_has_no_generated_evidence_types(self) -> None:
         suffixes = {".xlsx", ".xls", ".har", ".trace", ".sqlite", ".db"}
-        public_roots = ["src", "schemas", "agents", "skills", "workflows", "examples", "docs", "tests"]
+        public_roots = ["src", "schemas", "agents", "skills", "workflows", "examples", "docs", "wiki", "tests"]
         offenders = [
             str(path.relative_to(ROOT))
             for root in public_roots
@@ -72,7 +73,7 @@ class PublicationTest(unittest.TestCase):
     def test_public_tree_has_no_absolute_user_home(self) -> None:
         pattern = re.compile(r"/home/[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\[^\\]+\\")
         offenders = []
-        for root in ("src", "schemas", "agents", "skills", "workflows", "examples", "docs", "tests"):
+        for root in ("src", "schemas", "agents", "skills", "workflows", "examples", "docs", "wiki", "tests"):
             for path in (ROOT / root).rglob("*"):
                 if path.is_file() and path.suffix.lower() in {".py", ".md", ".json", ".yaml", ".yml"}:
                     if pattern.search(path.read_text(encoding="utf-8", errors="replace")):

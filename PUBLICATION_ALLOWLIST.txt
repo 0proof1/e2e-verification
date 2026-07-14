@@ -6,6 +6,7 @@ skills/
 workflows/
 examples/
 docs/
+wiki/
 tests/
 Dockerfile
 compose.yaml
