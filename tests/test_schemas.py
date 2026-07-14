@@ -40,8 +40,8 @@ class SchemaTest(unittest.TestCase):
         validator.validate(payload)
 
     def test_step_and_run_output_match_published_schemas(self) -> None:
-        evidence_schema = schema("evidence-v1.schema.json")
-        run_schema = schema("run-v1.schema.json")
+        evidence_schema = schema("evidence-v2.schema.json")
+        run_schema = schema("run-v2.schema.json")
         resolver = RefResolver.from_schema(run_schema, store={
             evidence_schema["$id"]: evidence_schema,
             run_schema["$id"]: run_schema,

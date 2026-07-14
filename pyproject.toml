@@ -32,6 +32,9 @@ e2e-verify = "e2e_verification.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+e2e_verification = ["assets/*.js", "assets/*.LICENSE", "assets/*.md"]
+
 [tool.setuptools.data-files]
 "share/e2e-verification/schemas" = ["schemas/*.json"]
 "share/e2e-verification/agents" = ["agents/*.yaml"]

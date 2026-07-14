@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:e2e-verification:schema:evidence:v2",
+  "title": "E2E verification step evidence v2",
+  "type": "object",
+  "required": ["contract_version", "step_id", "harness", "status", "functional_status", "usability_status", "risk", "started_at", "finished_at", "summary", "findings", "artifacts", "cleanup", "recommended_next_steps"],
+  "properties": {
+    "contract_version": {"const": "2.0"},
+    "step_id": {"type": "string", "minLength": 1},
+    "harness": {"type": "string", "minLength": 1},
+    "status": {"enum": ["PASS", "FAIL", "BLOCKED", "SKIP"]},
+    "functional_status": {"enum": ["PASS", "FAIL", "BLOCKED", "SKIP"]},
+    "usability_status": {"enum": ["PASS", "REVIEW", "BLOCKED", "SKIP"]},
+    "risk": {"enum": ["read-only", "download", "write", "destructive", "external-send"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "summary": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
+    "cleanup": {"$ref": "#/$defs/cleanup"},
+    "recommended_next_steps": {"type": "array", "items": {"type": "string"}},
+    "metadata": {"type": "object"}
+  },
+  "$defs": {
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "status", "title", "message", "severity", "evidence", "category", "case_id"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1}, "status": {"enum": ["PASS", "FAIL", "REVIEW", "BLOCKED", "SKIP"]},
+        "title": {"type": "string", "minLength": 1}, "message": {"type": "string"}, "severity": {"type": "string"},
+        "evidence": {"type": "array", "items": {"type": "string"}}, "category": {"type": "string"}, "case_id": {"type": "string"}
+      }
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "path", "description", "redacted", "case_id", "variant", "role", "state", "viewport"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1}, "path": {"type": "string", "minLength": 1}, "description": {"type": "string"},
+        "redacted": {"type": "boolean"}, "case_id": {"type": "string"}, "variant": {"type": "string"}, "role": {"type": "string"},
+        "state": {"type": "string"}, "viewport": {"type": "object"}
+      }
+    },
+    "cleanup": {
+      "type": "object", "additionalProperties": false, "required": ["required", "status", "message"],
+      "properties": {"required": {"type": "boolean"}, "status": {"enum": ["PASS", "FAIL", "REVIEW", "BLOCKED", "SKIP"]}, "message": {"type": "string"}}
+    }
+  },
+  "additionalProperties": false
+}

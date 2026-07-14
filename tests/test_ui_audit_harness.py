@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+import unittest
+
+from e2e_verification.ui_audit_harness import _aggregate_axis, _case_id, _measure_menu_scroll_reset, _summarize_cases
+
+
+class UiAuditHarnessTest(unittest.TestCase):
+    def test_case_id_includes_role_state_and_viewport(self) -> None:
+        value = _case_id(
+            {"page": "settlements", "role": "SETTLEMENT_OPERATOR"},
+            "empty",
+            {"name": "office-laptop"},
+        )
+        self.assertEqual("UI-SETTLEMENTS-EMPTY-SETTLEMENT_OPERATOR-OFFICE-LAPTOP", value)
+
+    def test_usability_review_does_not_fail_functional_axis(self) -> None:
+        cases = [{"functional_status": "PASS", "usability_status": "REVIEW"}]
+        self.assertEqual("PASS", _aggregate_axis(cases, "functional_status", review=False))
+        self.assertEqual("REVIEW", _aggregate_axis(cases, "usability_status", review=True))
+        self.assertEqual({"total": 1, "passed": 1, "failed": 0, "blocked": 0, "review": 1}, _summarize_cases(cases))
+
+    def test_failure_and_blocked_precedence(self) -> None:
+        cases = [
+            {"functional_status": "BLOCKED", "usability_status": "BLOCKED"},
+            {"functional_status": "FAIL", "usability_status": "REVIEW"},
+        ]
+        self.assertEqual("FAIL", _aggregate_axis(cases, "functional_status", review=False))
+        self.assertEqual("BLOCKED", _aggregate_axis(cases, "usability_status", review=True))
+
+    def test_scroll_reset_skips_when_navigation_is_not_applicable(self) -> None:
+        self.assertEqual(
+            "SKIP",
+            _measure_menu_scroll_reset(object(), "http://example.test", None, "/#/command", 0)["status"],
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

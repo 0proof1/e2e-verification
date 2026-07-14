@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from e2e_verification.evidence import Cleanup, Risk, Status
+from e2e_verification.evidence import Cleanup, Finding, FunctionalStatus, Risk, Status, UsabilityStatus
 from e2e_verification.workflow import (
     HarnessOutcome,
     HarnessRegistry,
@@ -139,6 +139,43 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual("FAIL", state["status"])
         self.assertEqual("FAIL", state["steps"]["write"]["cleanup"]["status"])
         self.assertIn("required cleanup", state["steps"]["write"]["cleanup"]["message"])
+
+    def test_usability_review_and_findings_propagate_without_failing_run(self) -> None:
+        self.registry.register("review", lambda _step, _out: HarnessOutcome(
+            status=Status.REVIEW,
+            functional_status=FunctionalStatus.PASS,
+            usability_status=UsabilityStatus.REVIEW,
+            findings=[Finding("UX-1", Status.REVIEW, "Ambiguous label")],
+            recommended_next_steps=["Clarify the label"],
+        ))
+        with tempfile.TemporaryDirectory() as directory:
+            state = WorkflowRunner(self.registry).run(
+                WorkflowSpec("test", [StepSpec("ui", "review")]), Path(directory),
+            )
+        self.assertEqual("PASS", state["status"])
+        self.assertEqual("REVIEW", state["steps"]["ui"]["usability_status"])
+        self.assertEqual("UX-1", state["steps"]["ui"]["findings"][0]["id"])
+        self.assertEqual(["Clarify the label"], state["steps"]["ui"]["recommended_next_steps"])
+
+    def test_artifact_paths_are_run_relative_and_cannot_escape(self) -> None:
+        def artifact(_step: StepSpec, out: Path) -> HarnessOutcome:
+            image = out / "shot.png"; image.write_bytes(b"png")
+            return HarnessOutcome(status=Status.PASS, artifacts=[{"kind": "screenshot", "path": str(image)}])
+        self.registry.register("artifact", artifact)
+        with tempfile.TemporaryDirectory() as directory:
+            state = WorkflowRunner(self.registry).run(
+                WorkflowSpec("test", [StepSpec("ui", "artifact")]), Path(directory),
+            )
+        self.assertEqual("steps/ui/shot.png", state["steps"]["ui"]["artifacts"][0]["path"])
+
+        self.registry.register("escape", lambda _step, _out: HarnessOutcome(
+            status=Status.PASS, artifacts=[{"kind": "screenshot", "path": "/tmp/outside.png"}],
+        ))
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "escapes run directory"):
+                WorkflowRunner(self.registry).run(
+                    WorkflowSpec("test", [StepSpec("ui", "escape")]), Path(directory),
+                )
 
 
 if __name__ == "__main__":

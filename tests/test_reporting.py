@@ -47,12 +47,47 @@ class ReportingTest(unittest.TestCase):
             state["steps"]["api"]["functionalStatus"] = "PASS"
             state["steps"]["api"]["usabilityStatus"] = "PASS"
             state["steps"]["api"]["artifacts"] = [{
-                "kind": "screenshot", "path": str(screenshot), "description": "viewport", "redacted": False,
+                "kind": "screenshot", "path": "shot.png", "description": "viewport", "redacted": False,
             }]
             run_path.write_text(json.dumps(state), encoding="utf-8")
             text = write_html_report(run_path).read_text(encoding="utf-8")
-        self.assertIn('<a class="artifact" href="shot.png">', text)
-        self.assertIn('<img src="shot.png"', text)
+        self.assertIn('<a href="shot.png"><img', text)
+        self.assertIn('src="shot.png"', text)
+
+    def test_v2_report_separates_verdicts_and_links_safe_images(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); image = root / "screenshots" / "한 장.png"
+            image.parent.mkdir(); image.write_bytes(b"png")
+            path = root / "run.json"
+            path.write_text(json.dumps({
+                "workflow": "audit", "status": "PASS", "steps": {"ui": {
+                    "harness": "ui-audit", "status": "PASS", "functional_status": "PASS",
+                    "usability_status": "REVIEW", "summary": {}, "artifacts": [{
+                        "kind": "screenshot", "path": "screenshots/한 장.png", "description": "First view",
+                        "role": "EDITOR", "state": "data", "variant": "viewport",
+                    }],
+                }},
+            }), encoding="utf-8")
+            text = write_html_report(path).read_text(encoding="utf-8")
+        self.assertIn("<strong>Functional</strong><br>PASS", text)
+        self.assertIn("<strong>Usability</strong><br>REVIEW", text)
+        self.assertIn("loading=\"lazy\"", text)
+        self.assertIn("screenshots/%ED%95%9C%20%EC%9E%A5.png", text)
+
+    def test_unsafe_and_missing_images_warn_without_embedding(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.json"
+            path.write_text(json.dumps({"workflow": "audit", "steps": {"ui": {
+                "harness": "ui-audit", "status": "PASS", "summary": {}, "artifacts": [
+                    {"kind": "screenshot", "path": "/absolute/private.png"},
+                    {"kind": "screenshot", "path": "missing.png"},
+                    {"kind": "screenshot", "path": "../escape.png"},
+                ],
+            }}}), encoding="utf-8")
+            text = write_html_report(path).read_text(encoding="utf-8")
+        self.assertIn("Artifact warnings", text)
+        self.assertNotIn("<img", text)
+        self.assertNotIn('href="/absolute/private.png"', text)
 
 
 if __name__ == "__main__":

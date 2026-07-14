@@ -195,6 +195,23 @@ docker compose run --rm verifier report \
 Use a new run directory for each pilot. CI supplies `SOURCE_SHA` while building
 the verifier image so `doctor` can report the exact source revision.
 
+### Collect UI audit evidence
+
+Evidence contract `2.0` records functional and usability verdicts independently.
+A usability `REVIEW` never changes a functional `PASS`, while a functional
+failure remains visible even when screenshots were collected successfully. The
+HTML report renders screenshot thumbnails with original-file links and filters
+for role, state, and viewport; missing or unsafe artifact paths are reported as
+warnings instead of being embedded.
+
+For repeatable UI evidence, add a read-only `ui-audit` workflow step with an
+`args.audit` file that conforms to `schemas/ui-audit-v1.schema.json`. The audit
+can collect paired first-viewport/full-page screenshots across roles, loading,
+data, empty, and error states; measure first-view title visibility, overflow,
+clipping, and menu scroll reset; and run the bundled, pinned axe-core plus Tab
+and focus-indicator checks for data cases. Product selectors and synthetic API
+fixtures stay in the consuming project rather than this platform repository.
+
 ## Safety is part of the contract
 
 Read-only execution is the default. Every other risk class requires an explicit named workflow approval.
