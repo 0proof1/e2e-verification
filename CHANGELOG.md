@@ -10,9 +10,21 @@ versioning after the first public-ready release.
 - Added Wiki guidance for minimal installation profiles, fixed-SHA checkout
   reinstalls, Docker provenance and caching, offline prerequisites, and the
   evidence-contract 1.1 migration.
+- Updated both English and Korean README editions with matching installation
+  modes, clean-SHA reinstall guidance, synthetic visual-pilot commands,
+  evidence 1.1 migration limits, Wiki entry points, and explicit Alpha
+  validation boundaries.
+- Reviewed the remote `feat/ui-ux-evidence-v2` line and documented its rebase,
+  evidence/status mapping, optional-dependency, axe-core provenance, reporting,
+  and installed-CLI gates without advertising unmerged features on `main`.
 - Added `wiki/` to the public-source allowlist, source distribution manifest,
   and release text scan so Wiki content follows the same publication boundary
   checks as repository documentation.
+
+### Verification
+
+- Re-executed the Docker commands documented in both READMEs for the synthetic
+  visual pilot and HTML report; the workflow completed with aggregate `PASS`.
 
 ## 0.2.0 - 2026-07-14
 

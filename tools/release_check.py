@@ -31,6 +31,7 @@ REQUIRED = {
     "docs/environments.md",
     "docs/migration-0.2.md",
     "docs/model-orchestration.md",
+    "docs/ui-audit-v2-integration.md",
     "tools/install_checkout.py",
     "wiki/Installation-and-Environments.md",
     "wiki/Migration-0.2.md",

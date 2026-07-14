@@ -38,6 +38,20 @@
   permission-cleared product profile is supplied; do not represent the
   synthetic dashboard pilot as that product evidence.
 
+## UI Audit v2 Integration Gate
+
+- Rebase `feat/ui-ux-evidence-v2` onto the v0.2 source line instead of merging
+  its older evidence, dependency, reporting, and packaging contracts directly.
+- Port role/state fixtures, axe-core, keyboard/focus evidence, artifact facets,
+  and report filters onto evidence 1.1 before proposing a separate 2.0 contract.
+- Preserve `functionalStatus`, `usabilityStatus`, P0-P3 evidence-linked
+  findings, optional Playwright installation, and fixed-SHA CLI verification.
+- Record bundled axe-core provenance, license, version, and digest; include it
+  in offline, artifact-boundary, and SBOM checks.
+- Decide whether `ui-audit` is workflow-only or a direct CLI command and smoke
+  test the installed wheel accordingly.
+- Follow the detailed [UI Audit v2 integration note](docs/ui-audit-v2-integration.md).
+
 ## 0.1
 
 - Stabilize workflow, evidence, agent, and skill contracts.

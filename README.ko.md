@@ -119,15 +119,37 @@ python -m playwright install chromium
 
 | 환경 | 권장 설치 | 추가 요구사항 |
 |---|---|---|
-| Linux, macOS, Windows host | Python 가상환경 | browser probe에는 Chromium 필요 |
+| API 전용 host | `.venv/bin/pip install -e .` | 기본 PyYAML 의존성만 필요 |
+| Browser host | `.venv/bin/pip install -e '.[browser]'` | Playwright와 일치하는 Chromium bundle |
+| 개발 또는 CI | `tools/install_checkout.py --extras dev` | Git checkout과 test 의존성 |
 | Docker 또는 Compose | 포함된 `Dockerfile`, `compose.yaml` | Compose를 지원하는 Docker Engine |
-| API 전용 검증 | Python package | browser 설치 불필요 |
-| 폐쇄망 host | 미리 반입한 wheel과 browser bundle | Playwright version과 일치하는 binary |
+| 폐쇄망 host | 미리 반입한 wheelhouse와 browser bundle | 의존성, build backend, platform 일치 binary |
 
 Python package와 unit matrix는 Linux의 Python 3.11-3.13, macOS와 Windows의
 Python 3.12를 대상으로 합니다. 실제 API, Chromium, Docker 통합 검증은 현재
 Linux에서 완료됐습니다. ARM64, Alpine/musl, WSL, 사설 CA, proxy 환경은 먼저
 `doctor`와 합성 smoke test를 통과시킨 뒤 지원 대상으로 판단해야 합니다.
+
+### Checkout을 재현 가능하게 다시 설치하기
+
+같은 package version으로 반복 개발할 때는 checkout installer가 선택한 의존성
+묶음만 해석하고 프로젝트를 한 번 강제 재설치하게 합니다.
+
+```bash
+.venv/bin/python tools/install_checkout.py --extras dev
+```
+
+CI와 release 작업에서는 local 수정도 거부해야 합니다. `GITHUB_SHA`가 있으면
+자동으로 검증하며 `--expected-sha`로 명시할 수도 있습니다.
+
+```bash
+.venv/bin/python tools/install_checkout.py --extras dev --require-clean
+```
+
+Installer는 source revision, import 경로, 설치된 console entry point와 현재
+`model-plan`·`agent-task` 명령을 확인합니다. 따라서 같은 version이 이미
+설치됐다는 pip 판정으로 이전 CLI가 유지되는 문제를 막습니다. 자세한 내용은
+[설치와 환경 Wiki](wiki/Installation-and-Environments.md)를 참고하세요.
 
 ## 5분 빠른 시작
 
@@ -184,6 +206,25 @@ docker compose run --rm verifier
 container 안의 `localhost`가 host인지 같은 container인지 임의로 추측하지
 않습니다. 모호한 경우 `BLOCKED`로 멈추고 명시적인 mode를 요구합니다. 자세한
 내용은 [환경과 target mode](docs/environments.md)를 참고하세요.
+
+### 합성 visual pilot 실행하기
+
+저장소 소유의 pilot은 1366x768 viewport/full-page screenshot 쌍, scroll과 title
+가시성, overflow/clipping 측정값을 수집하고 한 번 재시도한 실패에는 trace를
+남깁니다.
+
+```bash
+docker compose build
+docker compose run --rm verifier run \
+  --workflow workflows/pilot-visual.json \
+  --run-dir /evidence/runs/pilot-001
+docker compose run --rm verifier report \
+  --run-dir /evidence/runs/pilot-001
+```
+
+Pilot마다 새 run directory를 사용합니다. CI는 verifier image build 시
+`SOURCE_SHA`를 전달하므로 `doctor`가 정확한 source revision을 보고할 수
+있습니다.
 
 ## 격리된 테스트 애플리케이션 실행
 
@@ -349,6 +390,10 @@ Workflow 종합 상태는 기존 의미를 유지합니다.
 
 증거가 없다는 사실을 성공으로 바꾸지 않습니다.
 
+Evidence contract 1.0 run directory는 계속 열람할 수 있지만 0.2에서 resume할
+수 없습니다. Contract를 섞지 말고 새로운 1.1 run directory에서 시작하세요.
+자세한 내용은 [0.2 migration 가이드](docs/migration-0.2.md)를 참고하세요.
+
 | 종료 코드 | 의미 |
 |---|---|
 | `0` | 실행 완료 또는 review 가능한 결과 |
@@ -376,6 +421,7 @@ agents/                    이식 가능한 검증 역할
 skills/                    재사용 절차와 UI metadata
 workflows/                 선언형 실행 graph
 schemas/                   workflow, agent, run, step 계약
+wiki/                      GitHub Wiki 원본과 운영 가이드
 src/e2e_verification/
   config.py                profile 검증과 substitution
   model_plan.py            공급자 중립 모델 routing과 상향 규칙
@@ -393,8 +439,28 @@ tests/                     계약과 실행 테스트
 ```
 
 공개 저장소에는 제품 중립적인 플랫폼 코드와 합성 예제만 포함합니다.
+Source archive에는 검토된 Wiki 원본이 포함되고, wheel에는 runtime schema,
+agent, skill, workflow, example asset이 포함됩니다.
 `tools/public_repo_gate.py`는 공개 후보의 민감정보, 절대 사용자 경로, 생성 증거,
 Git 이력을 검사합니다.
+
+## 성숙도와 검증 한계
+
+Version 0.2는 Alpha이며 현재 **합성 검증 완료(Synthetic-verified)** 단계이지
+외부 검증 완료 상태가 아닙니다. 저장소가 소유한 Linux 합성 target에서는 계약을
+증명했지만, 공개된 실제 production project 적용 사례, 독립 보안 감사, PyPI
+release, 다중 browser 결과, 폭넓은 maintainer·community 채택은 아직 없습니다.
+공급자 중립 모델 routing과 task packet은 구현됐지만, vendor model 호출과 운영
+project 자율 탐색은 외부 orchestrator의 책임입니다.
+
+별도 `feat/ui-ux-evidence-v2` feature line은 계약과 공급망 검토 중입니다. 다중
+상태 UI audit과 bundled axe-core 실행은 아직 `main`의 제공 기능으로 안내하지
+않습니다. 자세한 내용은
+[UI Audit v2 통합 노트](docs/ui-audit-v2-integration.md)를 참고하세요.
+
+새 product profile, adapter, platform, proxy, private CA 환경은 `doctor`와 합성
+smoke run을 통과하기 전까지 검증된 대상으로 간주하지 마세요. 자세한 내용은
+[준비 상태와 검증 주장](docs/readiness.md), [Roadmap](ROADMAP.md)을 참고하세요.
 
 ## 개발과 release 검증
 
@@ -423,6 +489,10 @@ python3 tools/generate_sbom.py dist/sbom.cdx.json
 
 관련 문서:
 
+- [Wiki 홈](wiki/Home.md)
+- [Wiki 설치와 환경](wiki/Installation-and-Environments.md)
+- [Wiki 0.2 migration](wiki/Migration-0.2.md)
+- [UI Audit v2 통합 노트](docs/ui-audit-v2-integration.md)
 - [Architecture](docs/architecture.md)
 - [모델 orchestration](docs/model-orchestration.md)
 - [0.2 migration 가이드](docs/migration-0.2.md)
