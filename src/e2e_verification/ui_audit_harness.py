@@ -24,6 +24,11 @@ def _operation_timeout_ms(project_config: dict[str, Any], options: Any) -> int:
     return max(1, min(workflow_seconds, request_seconds)) * 1000
 
 
+def _browser_auth_request_path(project_config: dict[str, Any]) -> str:
+    value = str(project_config.get("browser_login", {}).get("request_path", "")).strip()
+    return value if value.startswith("/") else ""
+
+
 def run_ui_audit(
     project_config: dict[str, Any],
     audit_config: dict[str, Any],
@@ -163,13 +168,17 @@ def _run_case(
     unsafe_requests: list[dict[str, str]] = []
     blocked_external: list[str] = []
     origin = urlparse(web_base)
+    auth_request_path = _browser_auth_request_path(project_config)
 
     def safety_handler(route: Any, request: Any) -> None:
         method = request.method.upper()
         parsed = urlparse(request.url)
         same_origin = parsed.scheme == origin.scheme and parsed.netloc == origin.netloc
         allowed_external_hosts = set(audit_config.get("safety", {}).get("allowed_external_hosts", []))
-        if method not in SAFE_METHODS:
+        is_browser_auth = bool(auth_request_path) and same_origin and method == "POST" and parsed.path == auth_request_path
+        if is_browser_auth:
+            route.continue_()
+        elif method not in SAFE_METHODS:
             unsafe_requests.append({"method": method, "url": _safe_url(request.url)})
             route.abort("blockedbyclient")
         elif audit_config.get("safety", {}).get("block_external_hosts", True) and not same_origin and parsed.hostname not in allowed_external_hosts:

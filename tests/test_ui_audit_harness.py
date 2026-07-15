@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from e2e_verification.ui_audit_harness import (
     _aggregate_axis,
+    _browser_auth_request_path,
     _case_id,
     _measure_menu_scroll_reset,
     _operation_timeout_ms,
@@ -45,6 +46,14 @@ class UiAuditHarnessTest(unittest.TestCase):
         config = {"defaults": {"request_timeout_seconds": 30}}
         self.assertEqual(30_000, _operation_timeout_ms(config, SimpleNamespace(timeout_seconds=600)))
         self.assertEqual(12_000, _operation_timeout_ms(config, SimpleNamespace(timeout_seconds=12)))
+
+    def test_browser_auth_request_path_requires_an_explicit_absolute_path(self) -> None:
+        self.assertEqual(
+            "/api/auth/login",
+            _browser_auth_request_path({"browser_login": {"request_path": "/api/auth/login"}}),
+        )
+        self.assertEqual("", _browser_auth_request_path({"browser_login": {"request_path": "auth/login"}}))
+        self.assertEqual("", _browser_auth_request_path({}))
 
 
 if __name__ == "__main__":
