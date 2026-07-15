@@ -8,7 +8,6 @@
 - [[Profiles and Workflows]]
 - [[Safety Model]]
 - [[Evidence and Reporting]]
-- [[Migration 0.2]]
 - [[Troubleshooting]]
 
 ---

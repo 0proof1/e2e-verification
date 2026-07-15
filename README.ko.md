@@ -390,10 +390,6 @@ Workflow 종합 상태는 기존 의미를 유지합니다.
 
 증거가 없다는 사실을 성공으로 바꾸지 않습니다.
 
-Evidence contract 1.0 run directory는 계속 열람할 수 있지만 0.2에서 resume할
-수 없습니다. Contract를 섞지 말고 새로운 1.1 run directory에서 시작하세요.
-자세한 내용은 [0.2 migration 가이드](docs/migration-0.2.md)를 참고하세요.
-
 | 종료 코드 | 의미 |
 |---|---|
 | `0` | 실행 완료 또는 review 가능한 결과 |
@@ -491,11 +487,9 @@ python3 tools/generate_sbom.py dist/sbom.cdx.json
 
 - [Wiki 홈](wiki/Home.md)
 - [Wiki 설치와 환경](wiki/Installation-and-Environments.md)
-- [Wiki 0.2 migration](wiki/Migration-0.2.md)
 - [UI Audit v2 통합 노트](docs/ui-audit-v2-integration.md)
 - [Architecture](docs/architecture.md)
 - [모델 orchestration](docs/model-orchestration.md)
-- [0.2 migration 가이드](docs/migration-0.2.md)
 - [환경과 target mode](docs/environments.md)
 - [오픈소스 경계](docs/open-source-boundary.md)
 - [보안 정책](SECURITY.md)

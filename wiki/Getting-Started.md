@@ -61,6 +61,3 @@ e2e-verify report --run-dir evidence/runs/first-run
 ```
 
 Before adding write steps, read [[Safety Model]].
-
-Existing 0.1 users should also read [[Migration 0.2]] before resuming an old
-run directory.

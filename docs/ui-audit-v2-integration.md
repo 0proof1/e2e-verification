@@ -32,7 +32,7 @@ schemas, tests, packaging, and README content changed by v0.2.
 
 | Area | Current `main` | Feature line | Integration rule |
 |---|---|---|---|
-| Evidence contract | 1.1 | 2.0 | Keep 1.1 for v0.2; propose 2.0 separately with migration tests |
+| Evidence contract | 1.1 | 2.0 | Keep 1.1 for v0.2; evaluate 2.0 separately with explicit compatibility tests |
 | Public status fields | `functionalStatus`, `usabilityStatus` | snake_case variants | Preserve the current camelCase serialized contract |
 | Functional values | `PASS`, `FAIL`, `BLOCKED` | also `SKIP` | Keep the frozen v0.2 values; express non-execution outside the verdict |
 | Usability values | `PASS`, `REVIEW`, `NOT_RUN` | `PASS`, `REVIEW`, `BLOCKED`, `SKIP` | Map unexecuted/blocked audit work to `NOT_RUN` plus reason metadata |
@@ -69,7 +69,7 @@ document only the workflow form and never present `ui-audit` as a CLI command.
 5. Add synthetic, offline axe, path-traversal, role/state, retry/trace, wheel,
    and installed-CLI tests.
 6. Run the bounded synthetic pilot and publish only redacted evidence indexes.
-7. Update English, Korean, Wiki, changelog, and migration guidance together.
+7. Update English, Korean, Wiki, and changelog contract descriptions together.
 
 Only after these gates pass should `main` advertise deterministic multi-state
 UI audit or bundled accessibility execution as an available feature.

@@ -17,7 +17,6 @@ can be reviewed independently.
 - [[Profiles and Workflows]] — adapt the platform to another application.
 - [[Safety Model]] — approvals, mutation rules, cleanup, and trust boundaries.
 - [[Evidence and Reporting]] — statuses, artifacts, redaction, and reports.
-- [[Migration 0.2]] — adopt evidence contract 1.1 and the v0.2 installation model.
 - [[Troubleshooting]] — diagnose blocked or failed runs.
 
 ## Intended use

@@ -5,8 +5,8 @@ changes.
 
 1. Run the full unit suite and enabled network/browser integration suites.
 2. Run `python3 tools/release_check.py`.
-3. Move completed changes out of `Unreleased`, date the version entry, and add
-   migration guidance for schema, status, resume, or CLI compatibility changes.
+3. Move completed changes out of `Unreleased`, date the version entry, and
+   document schema, status, resume, or CLI compatibility changes.
 4. Build wheel and source archives from a clean checkout.
 5. Run `python3 tools/check_artifact.py dist/*`.
 6. Confirm evidence, agent task packets, downloads, browser state, databases,
@@ -22,4 +22,4 @@ changes.
 11. Only then change visibility, tag, or publish artifacts.
 
 Versions follow semantic versioning. Schema and status-contract changes require
-compatibility notes and migration guidance.
+explicit compatibility notes.

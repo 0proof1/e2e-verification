@@ -18,11 +18,8 @@ workflow status below remains the orchestration result.
 | `SKIP` | A declared condition did not select the step |
 
 Missing evidence never becomes `PASS`. A safely blocked run preserves completed
-evidence so the same workflow and run directory can resume later.
-
-Evidence contract 1.0 run directories are not resumable with 0.2. The files
-remain reviewable, but a 1.1 run must start in a new directory. See
-[[Migration 0.2]].
+evidence so the same workflow and run directory can resume later. Resume also
+requires the run directory's evidence contract to match the current contract.
 
 ```bash
 e2e-verify resume \

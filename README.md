@@ -283,10 +283,6 @@ The aggregate workflow status remains:
 
 Missing evidence is never converted into success. CLI exit codes are `0` for completed/reviewed work, `2` for failure or invalid invocation, and `3` for a safely blocked workflow.
 
-Evidence contract 1.0 run directories remain reviewable but cannot resume
-under 0.2. Start a new 1.1 run directory instead of mixing contracts; see
-[0.2 migration guidance](docs/migration-0.2.md).
-
 ## Repository map
 
 ```text
@@ -369,11 +365,9 @@ Architecture and policy details:
 
 - [Wiki home](wiki/Home.md)
 - [Wiki installation and environments](wiki/Installation-and-Environments.md)
-- [Wiki migration 0.2](wiki/Migration-0.2.md)
 - [UI Audit v2 integration note](docs/ui-audit-v2-integration.md)
 - [Architecture](docs/architecture.md)
 - [Model orchestration](docs/model-orchestration.md)
-- [0.2 migration guidance](docs/migration-0.2.md)
 - [Open-source boundary](docs/open-source-boundary.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)

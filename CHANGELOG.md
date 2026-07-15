@@ -9,11 +9,12 @@ versioning after the first public-ready release.
 
 - Added Wiki guidance for minimal installation profiles, fixed-SHA checkout
   reinstalls, Docker provenance and caching, offline prerequisites, and the
-  evidence-contract 1.1 migration.
+  evidence-contract 1.1 runtime boundary.
 - Updated both English and Korean README editions with matching installation
   modes, clean-SHA reinstall guidance, synthetic visual-pilot commands,
-  evidence 1.1 migration limits, Wiki entry points, and explicit Alpha
+  evidence 1.1 contract limits, Wiki entry points, and explicit Alpha
   validation boundaries.
+- Removed short-lived 0.1-to-0.2 upgrade guides and their navigation entries.
 - Reviewed the remote `feat/ui-ux-evidence-v2` line and documented its rebase,
   evidence/status mapping, optional-dependency, axe-core provenance, reporting,
   and installed-CLI gates without advertising unmerged features on `main`.
@@ -53,8 +54,7 @@ versioning after the first public-ready release.
 
 ### Changed
 
-- Bumped the package from 0.1.0 to 0.2.0 and the evidence contract from 1.0 to
-  1.1.
+- Set the package version to 0.2.0 and the evidence contract to 1.1.
 - Split `functionalStatus` (`PASS`, `FAIL`, `BLOCKED`) from `usabilityStatus`
   (`PASS`, `REVIEW`, `NOT_RUN`).
 - Restricted finding severity to P0-P3 and require at least one evidence link
@@ -100,9 +100,6 @@ versioning after the first public-ready release.
   release check. These results are synthetic verification, not a production
   case study or independent audit.
 
-See [0.2 migration guidance](docs/migration-0.2.md) for evidence-contract and
-resume compatibility.
-
 ## 0.1.0 - 2026-07-13
 
 - Introduced portable agent definitions and eight reusable verification skills.
@@ -122,5 +119,5 @@ resume compatibility.
   generation.
 - Added environment doctor, explicit target modes, connection preflight, and
   Docker/Compose synthetic verification.
-- Removed product-specific migration profiles, compatibility wrappers, and
-  local workbook tooling from the public source candidate.
+- Removed product-specific compatibility wrappers and local workbook tooling
+  from the public source candidate.

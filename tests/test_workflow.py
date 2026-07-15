@@ -78,16 +78,16 @@ class WorkflowTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "definition changed"):
                 WorkflowRunner(self.registry).run(changed, run_dir, resume=True)
 
-    def test_resume_rejects_an_older_evidence_contract(self) -> None:
+    def test_resume_rejects_a_mismatched_evidence_contract(self) -> None:
         spec = WorkflowSpec("test", [StepSpec("read", "pass")])
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
             WorkflowRunner(self.registry).run(spec, run_dir)
             state_path = run_dir / "run.json"
             state = json.loads(state_path.read_text(encoding="utf-8"))
-            state["contract_version"] = "1.0"
+            state["contract_version"] = "unexpected"
             state_path.write_text(json.dumps(state), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "evidence contract 1.0"):
+            with self.assertRaisesRegex(ValueError, "evidence contract unexpected"):
                 WorkflowRunner(self.registry).run(spec, run_dir, resume=True)
 
     def test_new_run_refuses_to_overwrite_existing_state(self) -> None:
