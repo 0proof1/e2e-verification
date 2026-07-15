@@ -430,7 +430,7 @@ def _measure_menu_scroll_reset(
     before = int(page.evaluate("window.scrollY"))
     if before < 1:
         return {"status": "SKIP", "reason": "could not establish pre-scroll", "source_route": source_route}
-    page.get_by_role("button", name=menu, exact=True).click()
+    _navigation_menu_button(page, menu).click()
     page.wait_for_function("expected => location.hash === expected", arg=str(target_route).removeprefix("/"))
     page.wait_for_timeout(settle_ms)
     after = int(page.evaluate("window.scrollY"))
@@ -444,6 +444,11 @@ def _measure_menu_scroll_reset(
     }
 
 
+def _navigation_menu_button(page: Any, menu: str) -> Any:
+    """Scope menu lookup to semantic navigation to avoid same-name page actions."""
+    return page.get_by_role("navigation").first.get_by_role("button", name=menu, exact=True).first
+
+
 _LAYOUT_MEASURE_SCRIPT = """() => {
   const root = document.documentElement;
   const hidden = element => {
@@ -453,6 +458,15 @@ _LAYOUT_MEASURE_SCRIPT = """() => {
   };
   const candidates = [];
   const offscreen = [];
+  const insideHorizontalScroller = element => {
+    let parent = element.parentElement;
+    while (parent && parent !== document.body) {
+      const style = getComputedStyle(parent);
+      if (['auto', 'scroll'].includes(style.overflowX) && parent.scrollWidth > parent.clientWidth + 1) return true;
+      parent = parent.parentElement;
+    }
+    return false;
+  };
   for (const element of document.querySelectorAll('body *')) {
     if (hidden(element) || element.closest('[aria-hidden="true"], [inert], .visually-hidden, .sr-only')) continue;
     const style = getComputedStyle(element);
@@ -464,7 +478,7 @@ _LAYOUT_MEASURE_SCRIPT = """() => {
       clipsX, clipsY, clientWidth: element.clientWidth, scrollWidth: element.scrollWidth,
       clientHeight: element.clientHeight, scrollHeight: element.scrollHeight
     });
-    if ((rect.right > innerWidth + 1 || rect.left < -1) && offscreen.length < 50) offscreen.push({
+    if ((rect.right > innerWidth + 1 || rect.left < -1) && !insideHorizontalScroller(element) && offscreen.length < 50) offscreen.push({
       tag: element.tagName.toLowerCase(), id: element.id || '', className: String(element.className || '').slice(0, 160),
       left: rect.left, right: rect.right
     });

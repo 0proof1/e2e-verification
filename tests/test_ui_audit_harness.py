@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from e2e_verification.ui_audit_harness import (
     _aggregate_axis,
     _browser_auth_request_path,
     _case_id,
     _measure_menu_scroll_reset,
+    _navigation_menu_button,
     _operation_timeout_ms,
     _summarize_cases,
 )
@@ -54,6 +56,14 @@ class UiAuditHarnessTest(unittest.TestCase):
         )
         self.assertEqual("", _browser_auth_request_path({"browser_login": {"request_path": "auth/login"}}))
         self.assertEqual("", _browser_auth_request_path({}))
+
+    def test_navigation_menu_lookup_is_scoped_to_semantic_navigation(self) -> None:
+        page = MagicMock()
+        navigation = page.get_by_role.return_value.first
+        expected = navigation.get_by_role.return_value.first
+        self.assertIs(expected, _navigation_menu_button(page, "타이틀 허브"))
+        page.get_by_role.assert_called_once_with("navigation")
+        navigation.get_by_role.assert_called_once_with("button", name="타이틀 허브", exact=True)
 
 
 if __name__ == "__main__":
