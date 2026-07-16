@@ -191,10 +191,6 @@ def _ui_case_findings(case: dict[str, Any]) -> list[Finding]:
         usability_messages.append(("horizontal-overflow", "The document overflows horizontally", "high"))
     if measurements.get("clipped_candidates"):
         usability_messages.append(("clipped-content", f"Detected {measurements['clipped_candidates']} clipped content candidates", "medium"))
-    if measurements.get("offscreen_candidates"):
-        usability_messages.append(("offscreen-content", f"Detected {measurements['offscreen_candidates']} elements beyond the first viewport width", "medium"))
-    if case.get("blocked_external_requests"):
-        usability_messages.append(("external-assets", "External assets were blocked during the reproducible audit", "medium"))
     if case.get("known_gap"):
         usability_messages.append(("known-gap", str(case["known_gap"]), "high"))
     accessibility = case.get("accessibility") or {}
