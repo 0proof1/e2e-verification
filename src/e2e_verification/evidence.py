@@ -54,6 +54,8 @@ class Artifact:
     variant: str = ""
     role: str = ""
     state: str = ""
+    page: str = ""
+    shard: str = ""
     viewport: dict[str, Any] = field(default_factory=dict)
 
 

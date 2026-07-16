@@ -89,6 +89,48 @@ class ReportingTest(unittest.TestCase):
         self.assertNotIn("<img", text)
         self.assertNotIn('href="/absolute/private.png"', text)
 
+    def test_full_report_aggregates_case_axes_and_filters_by_page_and_shard(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("core.png", "finance.png"):
+                (root / name).write_bytes(b"png")
+            path = root / "run.json"
+            path.write_text(json.dumps({
+                "workflow": "full", "status": "PASS", "steps": {
+                    "ui-core": {
+                        "harness": "ui-audit", "functional_status": "PASS", "usability_status": "REVIEW",
+                        "summary": {"total": 1, "passed": 1, "review": 1},
+                        "metadata": {"ui_audit": {"cases": [{
+                            "functional_status": "PASS", "usability_status": "REVIEW",
+                        }]}},
+                        "artifacts": [{
+                            "kind": "screenshot", "path": "core.png", "page": "command",
+                            "shard": "core", "role": "EDITOR", "state": "data",
+                            "viewport": {"name": "office-laptop"},
+                        }],
+                    },
+                    "ui-finance": {
+                        "harness": "ui-audit", "functional_status": "PASS", "usability_status": "PASS",
+                        "summary": {"total": 1, "passed": 1, "review": 0},
+                        "metadata": {"ui_audit": {"cases": [{
+                            "functional_status": "PASS", "usability_status": "PASS",
+                        }]}},
+                        "artifacts": [{
+                            "kind": "screenshot", "path": "finance.png", "page": "dashboard",
+                            "shard": "finance", "role": "SETTLEMENT_OPERATOR", "state": "data",
+                            "viewport": {"name": "desktop-reference"},
+                        }],
+                    },
+                },
+            }), encoding="utf-8")
+            text = write_html_report(path).read_text(encoding="utf-8")
+        self.assertIn("2/2 PASS · FAIL 0 · BLOCKED 0 · SKIP 0", text)
+        self.assertIn("1/2 PASS · REVIEW 1 · BLOCKED 0 · SKIP 0", text)
+        self.assertIn('data-filter="page"', text)
+        self.assertIn('data-filter="shard"', text)
+        self.assertIn('data-page="dashboard"', text)
+        self.assertIn('data-shard="finance"', text)
+
 
 if __name__ == "__main__":
     unittest.main()

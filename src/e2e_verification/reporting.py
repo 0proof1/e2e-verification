@@ -14,6 +14,7 @@ def write_html_report(run_path: Path, output_path: Path | None = None) -> Path:
     rows = "\n".join(_step_row(step_id, value) for step_id, value in steps.items())
     functional = _aggregate(steps, "functional_status", legacy=True)
     usability = _aggregate(steps, "usability_status", default="SKIP")
+    case_counters = _case_counters(steps)
     gallery, warnings, filters = _gallery(steps, run_path.parent)
     findings = _findings(steps)
     warning_html = "" if not warnings else "<section class=warnings><h2>Artifact warnings</h2><ul>" + "".join(
@@ -30,6 +31,7 @@ def write_html_report(run_path: Path, output_path: Path | None = None) -> Path:
     * {{ box-sizing: border-box; }} body {{ max-width: 1200px; margin: 0 auto; padding: 2rem 1.25rem 4rem; line-height: 1.5; }}
     header, .verdicts, .filters {{ display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; }}
     .verdict {{ background: white; border: 1px solid #dbe1ea; border-radius: .75rem; padding: .8rem 1rem; min-width: 12rem; }}
+    .counter {{ display: block; margin-top: .35rem; color: #536078; font-size: .85rem; }}
     table {{ width: 100%; border-collapse: collapse; margin-top: 2rem; background: white; }}
     th, td {{ padding: .75rem; border-bottom: 1px solid #dbe1ea; text-align: left; vertical-align: top; }}
     code {{ font-size: .9em; overflow-wrap: anywhere; }} .status {{ font-weight: 700; }}
@@ -43,13 +45,13 @@ def write_html_report(run_path: Path, output_path: Path | None = None) -> Path:
 </head>
 <body>
   <header><div><p>E2E verification</p><h1>{html.escape(str(state.get('workflow', 'Run')))}</h1></div><p class="status">{html.escape(str(state.get('status', 'UNKNOWN')))}</p></header>
-  <div class="verdicts"><p class="verdict"><strong>Functional</strong><br>{html.escape(functional)}</p><p class="verdict"><strong>Usability</strong><br>{html.escape(usability)}</p></div>
+  <div class="verdicts"><p class="verdict"><strong>Functional</strong><br>{html.escape(functional)}<span class="counter">{html.escape(_counter_text(case_counters, 'functional'))}</span></p><p class="verdict"><strong>Usability</strong><br>{html.escape(usability)}<span class="counter">{html.escape(_counter_text(case_counters, 'usability'))}</span></p></div>
   <p>Run <code>{html.escape(str(state.get('run_id', '')))}</code><br>Profile <code>{html.escape(str(state.get('profile', '')))}</code><br>Started <code>{html.escape(str(state.get('started_at', '')))}</code><br>Finished <code>{html.escape(str(state.get('finished_at', '')))}</code></p>
   <table><thead><tr><th>Step</th><th>Harness</th><th>Functional</th><th>Usability</th><th>Summary</th></tr></thead><tbody>{rows}</tbody></table>
   {warning_html}
   <section><h2>Findings</h2>{findings or '<p>No findings.</p>'}</section>
   <section><h2>Image evidence</h2>{filters}<div class="gallery">{gallery or '<p>No image artifacts.</p>'}</div></section>
-  <script>for(const s of document.querySelectorAll('[data-filter]'))s.addEventListener('change',()=>{{for(const c of document.querySelectorAll('figure[data-role]'))c.hidden=[...document.querySelectorAll('[data-filter]')].some(f=>f.value&&c.dataset[f.dataset.filter]!==f.value)}});</script>
+  <script>for(const s of document.querySelectorAll('[data-filter]'))s.addEventListener('change',()=>{{for(const c of document.querySelectorAll('figure[data-shard]'))c.hidden=[...document.querySelectorAll('[data-filter]')].some(f=>f.value&&c.dataset[f.dataset.filter]!==f.value)}});</script>
 </body>
 </html>
 """
@@ -109,10 +111,41 @@ def _step_row(step_id: str, value: dict[str, Any]) -> str:
     return "<tr>" + "".join(f"<td>{html.escape(str(item))}</td>" for item in values) + "</tr>"
 
 
+def _case_counters(steps: dict[str, dict[str, Any]]) -> dict[str, dict[str, int] | int]:
+    counters: dict[str, dict[str, int] | int] = {
+        "total": 0,
+        "functional": {status: 0 for status in ("PASS", "FAIL", "BLOCKED", "SKIP")},
+        "usability": {status: 0 for status in ("PASS", "REVIEW", "BLOCKED", "SKIP")},
+    }
+    for step in steps.values():
+        ui_audit = step.get("metadata", {}).get("ui_audit", {})
+        cases = ui_audit.get("cases", []) if isinstance(ui_audit, dict) else []
+        for case in cases if isinstance(cases, list) else []:
+            if not isinstance(case, dict):
+                continue
+            counters["total"] = int(counters["total"]) + 1
+            for axis in ("functional", "usability"):
+                values = counters[axis]
+                assert isinstance(values, dict)
+                status = str(case.get(f"{axis}_status", "BLOCKED"))
+                values[status if status in values else "BLOCKED"] += 1
+    return counters
+
+
+def _counter_text(counters: dict[str, dict[str, int] | int], axis: str) -> str:
+    total = int(counters["total"])
+    if not total:
+        return "No UI cases"
+    values = counters[axis]
+    assert isinstance(values, dict)
+    tail = ("FAIL", "BLOCKED", "SKIP") if axis == "functional" else ("REVIEW", "BLOCKED", "SKIP")
+    return " · ".join([f"{values['PASS']}/{total} PASS", *(f"{status} {values[status]}" for status in tail)])
+
+
 def _gallery(steps: dict[str, dict[str, Any]], root: Path) -> tuple[str, list[str], str]:
     cards: list[str] = []
     warnings: list[str] = []
-    facets: dict[str, set[str]] = {"role": set(), "state": set(), "viewport": set()}
+    facets: dict[str, set[str]] = {"role": set(), "state": set(), "viewport": set(), "page": set(), "shard": set()}
     resolved_root = root.resolve()
     for step_id, step in steps.items():
         for artifact in step.get("artifacts", []):
@@ -135,14 +168,20 @@ def _gallery(steps: dict[str, dict[str, Any]], root: Path) -> tuple[str, list[st
                 continue
             href = quote(path.as_posix(), safe="/-._~")
             label = artifact.get("description") or artifact.get("case_id") or path.name
-            meta = " · ".join(str(artifact.get(key, "")) for key in ("role", "state", "variant") if artifact.get(key))
+            meta = " · ".join(str(artifact.get(key, "")) for key in ("page", "role", "state", "variant") if artifact.get(key))
             viewport = artifact.get("viewport", {})
             viewport_name = str(viewport.get("name", "")) if isinstance(viewport, dict) else str(viewport)
-            values = {"role": str(artifact.get("role", "")), "state": str(artifact.get("state", "")), "viewport": viewport_name}
+            values = {
+                "role": str(artifact.get("role", "")),
+                "state": str(artifact.get("state", "")),
+                "viewport": viewport_name,
+                "page": str(artifact.get("page", "")),
+                "shard": str(artifact.get("shard", "") or step_id),
+            }
             for key, value in values.items():
                 if value: facets[key].add(value)
             cards.append(
-                f'<figure data-role="{html.escape(values["role"], quote=True)}" data-state="{html.escape(values["state"], quote=True)}" data-viewport="{html.escape(values["viewport"], quote=True)}"><a href="{html.escape(href, quote=True)}"><img loading="lazy" src="{html.escape(href, quote=True)}" alt="{html.escape(str(label), quote=True)}"></a>'
+                f'<figure data-role="{html.escape(values["role"], quote=True)}" data-state="{html.escape(values["state"], quote=True)}" data-viewport="{html.escape(values["viewport"], quote=True)}" data-page="{html.escape(values["page"], quote=True)}" data-shard="{html.escape(values["shard"], quote=True)}"><a href="{html.escape(href, quote=True)}"><img loading="lazy" src="{html.escape(href, quote=True)}" alt="{html.escape(str(label), quote=True)}"></a>'
                 f'<figcaption><strong>{html.escape(str(label))}</strong><div class="meta">{html.escape(meta)}</div></figcaption></figure>'
             )
     selectors = []

@@ -143,6 +143,8 @@ def ui_audit_harness(
                 "variant": variant,
                 "role": str(case.get("role", "")),
                 "state": str(case.get("state", "")),
+                "page": str(case.get("page", "")),
+                "shard": str(step.args.get("shard") or step.id),
                 "viewport": dict(viewport) if isinstance(viewport, dict) else {},
             })
         findings.extend(_ui_case_findings(case))
