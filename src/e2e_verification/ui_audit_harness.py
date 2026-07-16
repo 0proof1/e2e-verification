@@ -89,7 +89,15 @@ def run_ui_audit(
                 page = context.new_page()
                 page.set_default_timeout(timeout_ms)
                 page.set_default_navigation_timeout(timeout_ms)
-                login = {"role": role_name, **browser_login(page, project_config, role, web_base), "attempts": attempt}
+                try:
+                    login = {"role": role_name, **browser_login(page, project_config, role, web_base), "attempts": attempt}
+                except Exception as error:
+                    login = {
+                        "role": role_name,
+                        "result": "FAIL",
+                        "reason": f"browser login raised {type(error).__name__}: {str(error)[:500]}",
+                        "attempts": attempt,
+                    }
                 if login["result"] == "PASS":
                     authenticated_selector = str(audit_config.get("roles", {}).get(role_name, {}).get("authenticated_selector", ""))
                     if authenticated_selector:
@@ -240,7 +248,23 @@ def _run_case(
                     role for role in project_config.get("roles", [])
                     if role.get("name") == group["role"]
                 )
-                recovery = browser_login(page, project_config, project_role, web_base)
+                recovery: dict[str, Any] = {"result": "FAIL", "reason": "session recovery did not run"}
+                for recovery_attempt in range(1, 3):
+                    try:
+                        recovery = {
+                            **browser_login(page, project_config, project_role, web_base),
+                            "attempts": recovery_attempt,
+                        }
+                    except Exception as error:
+                        recovery = {
+                            "result": "FAIL",
+                            "reason": f"browser login raised {type(error).__name__}: {str(error)[:500]}",
+                            "attempts": recovery_attempt,
+                        }
+                    if recovery.get("result") == "PASS":
+                        break
+                    if recovery_attempt < 2:
+                        page.wait_for_timeout(250)
                 if recovery.get("result") != "PASS":
                     raise RuntimeError(f"case login recovery failed: {recovery}")
                 login_recovered = True

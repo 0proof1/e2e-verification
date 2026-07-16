@@ -245,7 +245,20 @@ def run_browser(config: dict[str, Any], options: Any, out_dir: Path) -> dict[str
                         result["traces"].append(trace_path)
                 context.close()
                 continue
-            for menu in role.get("menus", []):
+            menus = role.get("menus", [])
+            if menus:
+                first_menu = menus[0]
+                first_selector = first_menu.get("selector") or f"text={first_menu['label']}"
+                try:
+                    page.locator(first_selector).first.wait_for(
+                        state="visible",
+                        timeout=min(options.timeout_seconds * 1000, 10_000),
+                    )
+                except Exception:
+                    # Record every declared menu below. A missing shell remains
+                    # a normal functional failure rather than aborting the role.
+                    pass
+            for menu in menus:
                 selector = menu.get("selector") or f"text={menu['label']}"
                 result["menus"].append({"role": role_name, "label": menu["label"], "visible": page.locator(selector).first.is_visible()})
             for route in role.get("routes", []):
