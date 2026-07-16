@@ -34,6 +34,22 @@ class HarnessSafetyTest(unittest.TestCase):
         self.assertEqual("navigation", findings[0].category)
         self.assertEqual(Status.FAIL, findings[0].status)
 
+    def test_ui_audit_does_not_promote_informational_layout_metrics_to_review(self) -> None:
+        findings = _ui_case_findings({
+            "case_id": "UI-BOARD-DATA",
+            "artifacts": {"viewport": "steps/ui/screenshots/board.png"},
+            "measurements": {
+                "title_visible": True,
+                "overflow_x": False,
+                "clipped_candidates": 0,
+                "offscreen_candidates": 12,
+            },
+            "blocked_external_requests": ["https://fonts.example.invalid/font.woff2"],
+            "functional_status": "PASS",
+            "usability_status": "PASS",
+        })
+        self.assertEqual([], findings)
+
     def profile(self, directory: str, **values: object) -> Path:
         payload = {"version": 1, "name": "test", "roles": [{"name": "ADMIN"}], **values}
         path = Path(directory) / "profile.json"
