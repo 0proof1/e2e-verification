@@ -2,6 +2,7 @@ include LICENSE README.md README.ko.md CHANGELOG.md CONTRIBUTING.md SECURITY.md 
 include PUBLICATION_ALLOWLIST.txt ROADMAP.md
 include Dockerfile compose.yaml .dockerignore
 recursive-include src *.py
+recursive-include src/e2e_verification/assets *.js *.LICENSE *.md
 recursive-include schemas *.json
 recursive-include agents *.yaml
 recursive-include skills *.md *.yaml

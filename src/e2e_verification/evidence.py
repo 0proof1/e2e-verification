@@ -10,7 +10,7 @@ from typing import Any
 from .redaction import redact
 
 
-CONTRACT_VERSION = "1.1"
+CONTRACT_VERSION = "2.0"
 
 
 class Status(StrEnum):
@@ -25,12 +25,15 @@ class FunctionalStatus(StrEnum):
     PASS = "PASS"
     FAIL = "FAIL"
     BLOCKED = "BLOCKED"
+    SKIP = "SKIP"
 
 
 class UsabilityStatus(StrEnum):
     PASS = "PASS"
     REVIEW = "REVIEW"
     NOT_RUN = "NOT_RUN"
+    BLOCKED = "BLOCKED"
+    SKIP = "SKIP"
 
 
 class Risk(StrEnum):
@@ -47,6 +50,13 @@ class Artifact:
     path: str
     description: str = ""
     redacted: bool = True
+    case_id: str = ""
+    variant: str = ""
+    role: str = ""
+    state: str = ""
+    page: str = ""
+    shard: str = ""
+    viewport: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -57,6 +67,8 @@ class Finding:
     message: str = ""
     severity: str = "P3"
     evidence: list[str] = field(default_factory=list)
+    category: str = ""
+    case_id: str = ""
 
 
 @dataclass(slots=True)
@@ -80,18 +92,23 @@ class StepResult:
     cleanup: Cleanup = field(default_factory=Cleanup)
     recommended_next_steps: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    functional_status: FunctionalStatus | None = None
+    usability_status: UsabilityStatus = UsabilityStatus.SKIP
     contract_version: str = CONTRACT_VERSION
-    functionalStatus: FunctionalStatus = FunctionalStatus.PASS
-    usabilityStatus: UsabilityStatus = UsabilityStatus.NOT_RUN
 
     def validate(self) -> None:
         if not self.step_id.strip():
             raise ValueError("step_id is required")
         if not self.harness.strip():
             raise ValueError("harness is required")
+        if self.functional_status is None:
+            self.functional_status = functional_from_legacy(self.status)
+        self.status = legacy_status(self.functional_status)
         for finding in self.findings:
-            if finding.severity not in {"P0", "P1", "P2", "P3"}:
-                raise ValueError(f"finding {finding.id}: severity must be P0, P1, P2, or P3")
+            if finding.severity not in {"P0", "P1", "P2", "P3", "high", "medium", "low"}:
+                raise ValueError(
+                    f"finding {finding.id}: severity must be P0-P3 or high, medium, low"
+                )
             if not finding.evidence:
                 raise ValueError(f"finding {finding.id}: at least one evidence link is required")
         if self.risk in {Risk.WRITE, Risk.DESTRUCTIVE, Risk.EXTERNAL_SEND}:
@@ -141,6 +158,22 @@ def now() -> str:
 
 def exit_code(status: Status) -> int:
     return 2 if status == Status.FAIL else 3 if status == Status.BLOCKED else 0
+
+
+def functional_from_legacy(status: Status | str) -> FunctionalStatus:
+    value = Status(status)
+    if value == Status.FAIL:
+        return FunctionalStatus.FAIL
+    if value == Status.BLOCKED:
+        return FunctionalStatus.BLOCKED
+    if value == Status.SKIP:
+        return FunctionalStatus.SKIP
+    return FunctionalStatus.PASS
+
+
+def legacy_status(status: FunctionalStatus | str) -> Status:
+    value = FunctionalStatus(status)
+    return Status(value.value)
 
 
 def _enum_values(value: Any) -> Any:

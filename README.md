@@ -195,6 +195,26 @@ docker compose run --rm verifier report \
 Use a new run directory for each pilot. CI supplies `SOURCE_SHA` while building
 the verifier image so `doctor` can report the exact source revision.
 
+### Collect UI audit evidence
+
+Evidence contract `2.0` records functional and usability verdicts independently.
+A usability `REVIEW` never changes a functional `PASS`, while a functional
+failure remains visible even when screenshots were collected successfully. The
+HTML report renders screenshot thumbnails with original-file links and filters
+for role, state, and viewport; missing or unsafe artifact paths are reported as
+warnings instead of being embedded.
+
+For repeatable UI evidence, add a read-only `ui-audit` workflow step with an
+`args.audit` file that conforms to `schemas/ui-audit-v1.schema.json`. The audit
+can collect paired first-viewport/full-page screenshots across roles, loading,
+data, empty, and error states; measure first-view title visibility, overflow,
+clipping, and menu scroll reset; and run the bundled, pinned axe-core plus Tab
+and focus-indicator checks for data cases. Product selectors and synthetic API
+fixtures stay in the consuming project rather than this platform repository.
+The `data` contract may either use `{"action": "passthrough"}` for seeded test
+environments or a read-only `fixture_pattern` when the audit must prove a
+deterministic non-empty state.
+
 ## Safety is part of the contract
 
 Read-only execution is the default. Every other risk class requires an explicit named workflow approval.
@@ -264,12 +284,12 @@ e2e-verify assets
 
 ## Status semantics
 
-Evidence contract 1.1 keeps the two questions independent:
+Evidence contract 2.0 keeps the two questions independent:
 
 | Field | Values | Question |
 |---|---|---|
-| `functionalStatus` | `PASS`, `FAIL`, `BLOCKED` | Did the observable product contract work? |
-| `usabilityStatus` | `PASS`, `REVIEW`, `NOT_RUN` | Is the UX acceptable or does it need judgment? |
+| `functional_status` | `PASS`, `FAIL`, `BLOCKED`, `SKIP` | Did the observable product contract work? |
+| `usability_status` | `PASS`, `REVIEW`, `BLOCKED`, `SKIP` | Is the UX acceptable or does it need judgment? |
 
 The aggregate workflow status remains:
 
@@ -283,9 +303,9 @@ The aggregate workflow status remains:
 
 Missing evidence is never converted into success. CLI exit codes are `0` for completed/reviewed work, `2` for failure or invalid invocation, and `3` for a safely blocked workflow.
 
-Evidence contract 1.0 run directories remain reviewable but cannot resume
-under 0.2. Start a new 1.1 run directory instead of mixing contracts; see
-[0.2 migration guidance](docs/migration-0.2.md).
+Evidence contract 1.0 and 1.1 run directories remain reviewable but cannot
+resume under contract 2.0. Start a new run directory instead of mixing
+contracts; see [0.2 migration guidance](docs/migration-0.2.md).
 
 ## Repository map
 

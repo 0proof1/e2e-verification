@@ -5,7 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from e2e_verification.evidence import Cleanup, Finding, Risk, RunResult, Status, StepResult, exit_code
+from e2e_verification.evidence import (
+    Cleanup, Finding, FunctionalStatus, Risk, RunResult, Status, StepResult, UsabilityStatus, exit_code,
+)
 from e2e_verification.redaction import REDACTED, redact
 
 
@@ -28,6 +30,20 @@ class EvidenceTest(unittest.TestCase):
             summary={"passed": 1, "failed": 0},
         )
         self.assertEqual("PASS", result.to_dict()["status"])
+        self.assertEqual("PASS", result.to_dict()["functional_status"])
+        self.assertEqual("SKIP", result.to_dict()["usability_status"])
+
+    def test_usability_review_does_not_change_legacy_functional_status(self) -> None:
+        result = StepResult(
+            step_id="ui", harness="audit", status=Status.REVIEW,
+            functional_status=FunctionalStatus.PASS, usability_status=UsabilityStatus.REVIEW,
+            started_at="2026-07-12T00:00:00+00:00", finished_at="2026-07-12T00:00:01+00:00",
+        )
+        payload = result.to_dict()
+        self.assertEqual("PASS", payload["status"])
+        self.assertEqual("PASS", payload["functional_status"])
+        self.assertEqual("REVIEW", payload["usability_status"])
+        self.assertEqual(0, exit_code(result.status))
 
     def test_mutating_pass_requires_cleanup(self) -> None:
         result = StepResult(

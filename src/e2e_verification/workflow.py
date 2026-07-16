@@ -12,11 +12,14 @@ from typing import Any, Callable
 from .evidence import (
     CONTRACT_VERSION,
     Cleanup,
+    Finding,
     FunctionalStatus,
     Risk,
     Status,
     StepResult,
     UsabilityStatus,
+    functional_from_legacy,
+    legacy_status,
     now,
     write_json_atomic,
 )
@@ -52,8 +55,10 @@ class HarnessOutcome:
     artifacts: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     cleanup: Cleanup = field(default_factory=Cleanup)
-    functional_status: FunctionalStatus = FunctionalStatus.PASS
-    usability_status: UsabilityStatus = UsabilityStatus.NOT_RUN
+    findings: list[Finding] = field(default_factory=list)
+    recommended_next_steps: list[str] = field(default_factory=list)
+    functional_status: FunctionalStatus | None = None
+    usability_status: UsabilityStatus = UsabilityStatus.SKIP
 
 
 Harness = Callable[[StepSpec, Path], HarnessOutcome]
@@ -180,7 +185,7 @@ class WorkflowRunner:
             elif step.approval and step.approval not in approvals:
                 result = self._blocked(step, f"approval required: {step.approval}")
             else:
-                result = self._execute(step, run_dir / "steps" / step.id)
+                result = self._execute(step, run_dir / "steps" / step.id, run_dir)
             results[step.id] = result.to_dict()
             state["status"] = self._run_status(results)
             state["updated_at"] = now()
@@ -191,7 +196,7 @@ class WorkflowRunner:
         self._write_state(state_path, state)
         return state
 
-    def _execute(self, step: StepSpec, step_dir: Path) -> StepResult:
+    def _execute(self, step: StepSpec, step_dir: Path, run_dir: Path) -> StepResult:
         step_dir.mkdir(parents=True, exist_ok=True)
         started = now()
         outcome: HarnessOutcome | None = None
@@ -214,12 +219,14 @@ class WorkflowRunner:
                 time.sleep(min(0.1 * (attempt + 1), 1.0))
         assert outcome is not None
         from .evidence import Artifact
+        functional_status = outcome.functional_status or functional_from_legacy(outcome.status)
+        outcome.status = legacy_status(functional_status)
         if step.risk in {Risk.WRITE, Risk.DESTRUCTIVE, Risk.EXTERNAL_SEND}:
             if not outcome.cleanup.required:
                 outcome.cleanup = Cleanup(required=True, status=Status.FAIL, message="harness did not provide required cleanup evidence")
             if outcome.cleanup.status != Status.PASS and outcome.status == Status.PASS:
                 outcome.status = Status.FAIL
-                outcome.functional_status = FunctionalStatus.FAIL
+                functional_status = FunctionalStatus.FAIL
         result = StepResult(
             step_id=step.id,
             harness=step.harness,
@@ -227,13 +234,16 @@ class WorkflowRunner:
             risk=step.risk,
             started_at=started,
             finished_at=now(),
-            functionalStatus=outcome.functional_status,
-            usabilityStatus=outcome.usability_status,
             summary=outcome.summary,
             artifacts=[Artifact(**item) for item in outcome.artifacts],
             cleanup=outcome.cleanup,
             metadata={**outcome.metadata, "attempts": attempts},
+            findings=outcome.findings,
+            recommended_next_steps=outcome.recommended_next_steps,
+            functional_status=functional_status,
+            usability_status=outcome.usability_status,
         )
+        result.artifacts = [Artifact(**self._relative_artifact(item, run_dir)) for item in outcome.artifacts]
         result.write(step_dir / "result.json")
         return result
 
@@ -246,8 +256,8 @@ class WorkflowRunner:
             risk=step.risk,
             started_at=timestamp,
             finished_at=timestamp,
-            functionalStatus=FunctionalStatus.BLOCKED,
-            usabilityStatus=UsabilityStatus.NOT_RUN,
+            functional_status=FunctionalStatus.BLOCKED,
+            usability_status=UsabilityStatus.BLOCKED,
             cleanup=Cleanup(required=step.risk in {Risk.WRITE, Risk.DESTRUCTIVE, Risk.EXTERNAL_SEND}),
             metadata={"reason": reason},
         )
@@ -261,8 +271,8 @@ class WorkflowRunner:
             risk=step.risk,
             started_at=timestamp,
             finished_at=timestamp,
-            functionalStatus=FunctionalStatus.PASS,
-            usabilityStatus=UsabilityStatus.NOT_RUN,
+            functional_status=FunctionalStatus.SKIP,
+            usability_status=UsabilityStatus.SKIP,
             cleanup=Cleanup(required=False, status=Status.SKIP),
             metadata={"reason": reason},
         )
@@ -310,14 +320,31 @@ class WorkflowRunner:
 
     @staticmethod
     def _run_status(results: dict[str, dict[str, Any]]) -> Status:
-        statuses = {item.get("status") for item in results.values()}
+        statuses = {
+            legacy_status(item["functional_status"]).value
+            if item.get("functional_status") else legacy_status(functional_from_legacy(item.get("status", Status.BLOCKED))).value
+            for item in results.values()
+        }
         if Status.FAIL in statuses:
             return Status.FAIL
         if Status.BLOCKED in statuses:
             return Status.BLOCKED
-        if Status.REVIEW in statuses:
-            return Status.REVIEW
         return Status.PASS if statuses else Status.BLOCKED
+
+    @staticmethod
+    def _relative_artifact(item: dict[str, Any], run_dir: Path) -> dict[str, Any]:
+        value = dict(item)
+        raw = Path(str(value.get("path", "")))
+        if not str(raw):
+            raise ValueError("artifact path is required")
+        root = run_dir.resolve()
+        candidate = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
+        try:
+            relative = candidate.relative_to(root)
+        except ValueError as error:
+            raise ValueError(f"artifact path escapes run directory: {raw}") from error
+        value["path"] = relative.as_posix()
+        return value
 
     @staticmethod
     def _write_state(path: Path, state: dict[str, Any]) -> None:

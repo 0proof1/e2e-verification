@@ -6,7 +6,7 @@ import functools
 from pathlib import Path
 from typing import Any
 
-from .evidence import FunctionalStatus, Risk, Status, UsabilityStatus
+from .evidence import Finding, FunctionalStatus, Risk, Status, UsabilityStatus, legacy_status
 from .workflow import HarnessOutcome, HarnessRegistry, StepSpec
 
 
@@ -15,6 +15,7 @@ def default_registry(target_mode: str = "auto", host_alias: str = "host.docker.i
     registry.register("config-validate", validate_config_harness)
     registry.register("api-probes", functools.partial(api_probes_harness, target_mode=target_mode, host_alias=host_alias))
     registry.register("browser-probes", functools.partial(browser_probes_harness, target_mode=target_mode, host_alias=host_alias))
+    registry.register("ui-audit", functools.partial(ui_audit_harness, target_mode=target_mode, host_alias=host_alias))
     return registry
 
 
@@ -104,6 +105,117 @@ def browser_probes_harness(
     outcome = _legacy_outcome(report)
     outcome.artifacts = artifacts
     return outcome
+
+
+def ui_audit_harness(
+    step: StepSpec,
+    step_dir: Path,
+    target_mode: str = "auto",
+    host_alias: str = "host.docker.internal",
+) -> HarnessOutcome:
+    if step.risk != Risk.READ_ONLY:
+        raise ValueError("ui-audit accepts read-only workflow steps only")
+    from .ui_audit_harness import load_and_run_ui_audit
+
+    audit = step.args.get("audit")
+    if not audit:
+        raise ValueError(f"step {step.id}: args.audit is required")
+    args = _legacy_args(step, step_dir, target_mode, host_alias)
+    report = load_and_run_ui_audit(_config_path(step), Path(str(audit)).expanduser().resolve(), args, step_dir)
+    _relativize_ui_report_artifacts(report, step.id)
+    functional = FunctionalStatus(report.get("functional_status", "BLOCKED"))
+    usability = UsabilityStatus(report.get("usability_status", "BLOCKED"))
+    artifacts: list[dict[str, Any]] = []
+    findings: list[Finding] = []
+    for case in report.get("cases", []):
+        case_id = str(case.get("case_id", "ui-audit"))
+        viewport = case.get("viewport", {})
+        for variant in ("viewport", "full_page", "focus"):
+            path = case.get("artifacts", {}).get(variant)
+            if not path:
+                continue
+            artifacts.append({
+                "kind": "screenshot",
+                "path": path,
+                "description": f"{case_id} {variant}",
+                "redacted": False,
+                "case_id": case_id,
+                "variant": variant,
+                "role": str(case.get("role", "")),
+                "state": str(case.get("state", "")),
+                "page": str(case.get("page", "")),
+                "shard": str(step.args.get("shard") or step.id),
+                "viewport": dict(viewport) if isinstance(viewport, dict) else {},
+            })
+        findings.extend(_ui_case_findings(case))
+    return HarnessOutcome(
+        status=legacy_status(functional),
+        functional_status=functional,
+        usability_status=usability,
+        summary={key: int(value) for key, value in report.get("summary", {}).items() if isinstance(value, int)},
+        artifacts=artifacts,
+        findings=findings,
+        metadata={"ui_audit": report},
+        recommended_next_steps=[
+            "Review usability findings with their paired viewport and full-page evidence."
+        ] if usability == UsabilityStatus.REVIEW else [],
+    )
+
+
+def _ui_case_findings(case: dict[str, Any]) -> list[Finding]:
+    findings: list[Finding] = []
+    case_id = str(case.get("case_id", "ui-audit"))
+    evidence = [str(value) for value in case.get("artifacts", {}).values() if value]
+    for index, message in enumerate(case.get("errors", []), start=1):
+        findings.append(Finding(
+            id=f"{case_id}-functional-{index}", status=Status.FAIL,
+            title="UI audit could not prove the configured state", message=str(message), severity="high",
+            evidence=evidence, category="functional", case_id=case_id,
+        ))
+    measurements = case.get("measurements", {})
+    scroll_reset = measurements.get("menu_scroll_reset", {})
+    if scroll_reset.get("status") == "FAIL":
+        findings.append(Finding(
+            id=f"{case_id}-scroll-reset", status=Status.FAIL,
+            title="Menu navigation did not reset document scroll position",
+            message=(
+                f"{scroll_reset.get('menu', 'configured menu')}: "
+                f"scrollY {scroll_reset.get('before_scroll_y')} -> {scroll_reset.get('after_scroll_y')}"
+            ),
+            severity="high", evidence=evidence, category="navigation", case_id=case_id,
+        ))
+    usability_messages: list[tuple[str, str, str]] = []
+    if measurements and not measurements.get("title_visible", False):
+        usability_messages.append(("title-first-viewport", "Page title is not fully visible in the first viewport", "high"))
+    if measurements.get("overflow_x"):
+        usability_messages.append(("horizontal-overflow", "The document overflows horizontally", "high"))
+    if measurements.get("clipped_candidates"):
+        usability_messages.append(("clipped-content", f"Detected {measurements['clipped_candidates']} clipped content candidates", "medium"))
+    if measurements.get("offscreen_candidates"):
+        usability_messages.append(("offscreen-content", f"Detected {measurements['offscreen_candidates']} elements beyond the first viewport width", "medium"))
+    if case.get("blocked_external_requests"):
+        usability_messages.append(("external-assets", "External assets were blocked during the reproducible audit", "medium"))
+    if case.get("known_gap"):
+        usability_messages.append(("known-gap", str(case["known_gap"]), "high"))
+    accessibility = case.get("accessibility") or {}
+    if accessibility.get("usability_status") in {"REVIEW", "BLOCKED"}:
+        counts = accessibility.get("summary", {})
+        usability_messages.append(("accessibility", f"Accessibility audit requires review: {counts}", "high"))
+    for index, (category, message, severity) in enumerate(usability_messages, start=1):
+        findings.append(Finding(
+            id=f"{case_id}-usability-{index}", status=Status.REVIEW,
+            title=message, severity=severity, evidence=evidence, category=category, case_id=case_id,
+        ))
+    return findings
+
+
+def _relativize_ui_report_artifacts(report: dict[str, Any], step_id: str) -> None:
+    for case in report.get("cases", []):
+        artifacts = case.get("artifacts", {})
+        for key, value in list(artifacts.items()):
+            if not value:
+                continue
+            artifacts[key] = f"steps/{step_id}/screenshots/{Path(str(value)).name}"
 
 
 def _config_path(step: StepSpec) -> Path:
