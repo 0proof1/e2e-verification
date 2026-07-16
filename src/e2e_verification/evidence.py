@@ -95,8 +95,6 @@ class StepResult:
     functional_status: FunctionalStatus | None = None
     usability_status: UsabilityStatus = UsabilityStatus.SKIP
     contract_version: str = CONTRACT_VERSION
-    functionalStatus: FunctionalStatus = FunctionalStatus.PASS
-    usabilityStatus: UsabilityStatus = UsabilityStatus.NOT_RUN
 
     def validate(self) -> None:
         if not self.step_id.strip():
@@ -106,11 +104,6 @@ class StepResult:
         if self.functional_status is None:
             self.functional_status = functional_from_legacy(self.status)
         self.status = legacy_status(self.functional_status)
-        self.functionalStatus = self.functional_status
-        if self.usability_status == UsabilityStatus.SKIP and self.usabilityStatus != UsabilityStatus.NOT_RUN:
-            self.usability_status = UsabilityStatus(self.usabilityStatus.value)
-        elif self.usability_status != UsabilityStatus.SKIP:
-            self.usabilityStatus = self.usability_status
         for finding in self.findings:
             if finding.severity not in {"P0", "P1", "P2", "P3", "high", "medium", "low"}:
                 raise ValueError(

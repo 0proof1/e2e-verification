@@ -284,12 +284,12 @@ e2e-verify assets
 
 ## Status semantics
 
-Evidence contract 1.1 keeps the two questions independent:
+Evidence contract 2.0 keeps the two questions independent:
 
 | Field | Values | Question |
 |---|---|---|
-| `functionalStatus` | `PASS`, `FAIL`, `BLOCKED` | Did the observable product contract work? |
-| `usabilityStatus` | `PASS`, `REVIEW`, `NOT_RUN` | Is the UX acceptable or does it need judgment? |
+| `functional_status` | `PASS`, `FAIL`, `BLOCKED`, `SKIP` | Did the observable product contract work? |
+| `usability_status` | `PASS`, `REVIEW`, `BLOCKED`, `SKIP` | Is the UX acceptable or does it need judgment? |
 
 The aggregate workflow status remains:
 
@@ -303,9 +303,9 @@ The aggregate workflow status remains:
 
 Missing evidence is never converted into success. CLI exit codes are `0` for completed/reviewed work, `2` for failure or invalid invocation, and `3` for a safely blocked workflow.
 
-Evidence contract 1.0 run directories remain reviewable but cannot resume
-under 0.2. Start a new 1.1 run directory instead of mixing contracts; see
-[0.2 migration guidance](docs/migration-0.2.md).
+Evidence contract 1.0 and 1.1 run directories remain reviewable but cannot
+resume under contract 2.0. Start a new run directory instead of mixing
+contracts; see [0.2 migration guidance](docs/migration-0.2.md).
 
 ## Repository map
 

@@ -145,7 +145,10 @@ class WorkflowTest(unittest.TestCase):
             status=Status.REVIEW,
             functional_status=FunctionalStatus.PASS,
             usability_status=UsabilityStatus.REVIEW,
-            findings=[Finding("UX-1", Status.REVIEW, "Ambiguous label")],
+            findings=[Finding(
+                "UX-1", Status.REVIEW, "Ambiguous label",
+                evidence=["run.json#steps/ui"],
+            )],
             recommended_next_steps=["Clarify the label"],
         ))
         with tempfile.TemporaryDirectory() as directory:
